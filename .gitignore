@@ -1,0 +1,12 @@
+.gradle/
+build/
+app/build/
+local.properties
+.idea/workspace.xml
+*.iml
+ui screens/
+.idea/
+.gradle/
+build/
+app/build/
+*.iml
