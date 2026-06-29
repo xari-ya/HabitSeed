@@ -1,56 +1,80 @@
 package com.habitseed.app.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
+import com.habitseed.app.ui.theme.ForestGreen
+import com.habitseed.app.ui.theme.Sage
+import com.habitseed.app.ui.theme.SunsetOrange
 import kotlin.math.roundToInt
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
-import androidx.compose.material.icons.filled.PlayArrow // Use a water drop or check in real app
+import kotlinx.coroutines.launch
 
 @Composable
 fun SwipeToCompleteSlider(
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
-    text: String = "Slide to Water \uD83D\uDCA7"
+    text: String = "Swipe to Water",
+    completedText: String = "Watered Today",
+    isCompleted: Boolean = false,
+    enabled: Boolean = true
 ) {
-    val height = 64.dp
-    val thumbSize = 56.dp
-    val padding = 4.dp
-    
-    var componentWidth by remember { mutableStateOf(0f) }
-    val maxDragX = componentWidth - with(LocalDensity.current) { thumbSize.toPx() } - with(LocalDensity.current) { (padding * 2).toPx() }
-    
+    val height = 68.dp
+    val thumbSize = 58.dp
+    val padding = 5.dp
+
+    var componentWidth by remember { mutableFloatStateOf(0f) }
+    val thumbPx = with(LocalDensity.current) { thumbSize.toPx() }
+    val paddingPx = with(LocalDensity.current) { (padding * 2).toPx() }
+    val maxDragX = (componentWidth - thumbPx - paddingPx).coerceAtLeast(0f)
+
     val offsetX = remember { Animatable(0f) }
-    var isCompleted by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    
-    val draggableState = rememberDraggableState { delta ->
-        if (isCompleted || maxDragX <= 0) return@rememberDraggableState
-        
-        val newOffset = (offsetX.value + delta).coerceIn(0f, maxDragX)
-        coroutineScope.launch {
-            offsetX.snapTo(newOffset)
+
+    LaunchedEffect(isCompleted, maxDragX) {
+        if (isCompleted && maxDragX > 0f) {
+            offsetX.snapTo(maxDragX)
+        } else if (!isCompleted && offsetX.value > maxDragX) {
+            offsetX.snapTo(0f)
         }
+    }
+
+    val draggableState = rememberDraggableState { delta ->
+        if (!enabled || isCompleted || maxDragX <= 0f) return@rememberDraggableState
+        val newOffset = (offsetX.value + delta).coerceIn(0f, maxDragX)
+        coroutineScope.launch { offsetX.snapTo(newOffset) }
     }
 
     Box(
@@ -58,7 +82,7 @@ fun SwipeToCompleteSlider(
             .fillMaxWidth()
             .height(height)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary)
+            .background(ForestGreen)
             .padding(padding)
             .layout { measurable, constraints ->
                 val placeable = measurable.measure(constraints)
@@ -69,26 +93,22 @@ fun SwipeToCompleteSlider(
             },
         contentAlignment = Alignment.CenterStart
     ) {
-        // Progress background
-        val progressWidth = with(LocalDensity.current) { offsetX.value.toDp() } + (thumbSize / 2)
         Box(
             modifier = Modifier
-                .width(progressWidth.coerceAtLeast(0.dp))
                 .fillMaxHeight()
+                .fillMaxWidth(if (componentWidth <= 0f) 0f else ((offsetX.value + thumbPx) / componentWidth).coerceIn(0f, 1f))
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
+                .background(if (isCompleted) SunsetOrange else Sage.copy(alpha = 0.35f))
         )
-        
-        // Text
-        val textOpacity = 1f - (offsetX.value / maxDragX.coerceAtLeast(1f))
+
         Text(
-            text = if (isCompleted) "Watered! \uD83C\uDF31" else text,
-            color = Color.White.copy(alpha = textOpacity.coerceIn(0f, 1f)),
-            fontSize = 16.sp,
+            text = if (isCompleted) completedText else text,
+            color = Color.White,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.Center)
         )
-        
-        // Thumb
+
         Box(
             modifier = Modifier
                 .offset { IntOffset(offsetX.value.roundToInt(), 0) }
@@ -98,18 +118,17 @@ fun SwipeToCompleteSlider(
                 .draggable(
                     state = draggableState,
                     orientation = Orientation.Horizontal,
+                    enabled = enabled && !isCompleted,
                     onDragStopped = {
-                        if (isCompleted) return@draggable
-                        if (offsetX.value >= maxDragX * 0.95f) {
-                            isCompleted = true
+                        if (!enabled || isCompleted) return@draggable
+                        if (offsetX.value >= maxDragX * 0.9f) {
                             coroutineScope.launch {
-                                offsetX.animateTo(maxDragX, tween(300))
+                                offsetX.animateTo(maxDragX, tween(220))
                                 onComplete()
-                                // Reset after delay if needed
                             }
                         } else {
                             coroutineScope.launch {
-                                offsetX.animateTo(0f, tween(300))
+                                offsetX.animateTo(0f, tween(220))
                             }
                         }
                     }
@@ -117,9 +136,9 @@ fun SwipeToCompleteSlider(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = if (isCompleted) Icons.Default.Check else Icons.Default.PlayArrow,
-                contentDescription = "Swipe",
-                tint = MaterialTheme.colorScheme.primary
+                imageVector = if (isCompleted) Icons.Filled.Check else Icons.Filled.WaterDrop,
+                contentDescription = if (isCompleted) "Completed" else "Swipe to complete",
+                tint = if (isCompleted) SunsetOrange else ForestGreen
             )
         }
     }

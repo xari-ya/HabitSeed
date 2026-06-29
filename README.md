@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/brand/github-banner.png" alt="HabitSeed banner" width="100%">
+</p>
+
 # HabitSeed 🌱
 
 HabitSeed is a gamified Android habit-tracking app that turns daily routines into a growing digital garden. Users create habits, complete them daily, earn water drops, grow plants, unlock rewards, view statistics, interact with mock friends, and manage their profile settings.
