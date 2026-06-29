@@ -27,13 +27,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.Checkroom
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalDrink
-import androidx.compose.material.icons.filled.NightlightRound
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Spa
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,14 +56,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.habitseed.app.ui.theme.DarkSlate
 import com.habitseed.app.ui.theme.ForestGreen
 import com.habitseed.app.ui.theme.HabitSeedDimens
-import com.habitseed.app.ui.theme.LightGrey
-import com.habitseed.app.ui.theme.Mint
-import com.habitseed.app.ui.theme.Sage
 import com.habitseed.app.ui.theme.SunsetOrange
-import com.habitseed.app.ui.theme.White
 
 private data class HabitIconOption(
     val id: String,
@@ -165,7 +157,7 @@ fun AddHabitSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = White,
+        containerColor = MaterialTheme.colorScheme.surface,
         scrimColor = Color.Black.copy(alpha = 0.5f),
         dragHandle = null,
         tonalElevation = 10.dp,
@@ -184,20 +176,23 @@ fun AddHabitSheet(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .size(width = 52.dp, height = 5.dp)
-                    .background(LightGrey.copy(alpha = 0.35f), RoundedCornerShape(999.dp))
+                    .background(
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                        RoundedCornerShape(999.dp)
+                    )
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Plant a new habit",
                 style = MaterialTheme.typography.titleLarge,
-                color = DarkSlate,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.ExtraBold
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "Choose a small routine and let it grow into something beautiful.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = LightGrey
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(16.dp))
             AddHabitForm(
@@ -322,7 +317,7 @@ private fun AddHabitForm(
         }
 
         Surface(
-            color = Mint,
+            color = MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(20.dp)
         ) {
             Row(
@@ -336,14 +331,14 @@ private fun AddHabitForm(
                     Text(
                         text = "Daily reminder",
                         style = MaterialTheme.typography.titleMedium,
-                        color = DarkSlate,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Get a gentle nudge to water this habit.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = LightGrey
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Switch(
@@ -357,17 +352,17 @@ private fun AddHabitForm(
             onClick = onSave,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(58.dp),
+                .height(HabitSeedDimens.ButtonHeight),
             enabled = title.isNotBlank(),
             shape = RoundedCornerShape(HabitSeedDimens.ButtonRadius),
             colors = ButtonDefaults.buttonColors(
-                containerColor = SunsetOrange,
-                contentColor = Color.White
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary
             )
         ) {
             Text(
                 text = "Plant Seed",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold
             )
         }
@@ -380,7 +375,7 @@ private fun SectionLabel(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleMedium,
-        color = DarkSlate,
+        color = MaterialTheme.colorScheme.onSurface,
         fontWeight = FontWeight.Bold
     )
 }
@@ -394,10 +389,10 @@ private fun IconChoiceCard(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(22.dp),
-        color = if (selected) option.tint.copy(alpha = 0.14f) else White,
+        color = if (selected) option.tint.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(
             width = if (selected) 2.dp else 1.dp,
-            color = if (selected) option.tint else Sage
+            color = if (selected) option.tint else MaterialTheme.colorScheme.primaryContainer
         )
     ) {
         Column(
@@ -423,7 +418,7 @@ private fun IconChoiceCard(
             Text(
                 text = option.label,
                 style = MaterialTheme.typography.labelMedium,
-                color = DarkSlate,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -439,10 +434,10 @@ private fun ColorChoice(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(999.dp),
-        color = White,
+        color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(
             width = if (selected) 2.dp else 1.dp,
-            color = if (selected) option.color else Sage
+            color = if (selected) option.color else MaterialTheme.colorScheme.primaryContainer
         )
     ) {
         Row(
@@ -454,12 +449,12 @@ private fun ColorChoice(
                 modifier = Modifier
                     .size(18.dp)
                     .background(option.color, CircleShape)
-                    .border(1.dp, Color.White, CircleShape)
+                    .border(1.dp, MaterialTheme.colorScheme.surface, CircleShape)
             )
             Text(
                 text = option.label,
                 style = MaterialTheme.typography.labelLarge,
-                color = DarkSlate
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }

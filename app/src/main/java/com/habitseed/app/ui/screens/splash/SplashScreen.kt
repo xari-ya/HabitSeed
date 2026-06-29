@@ -18,7 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -26,8 +26,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import com.habitseed.app.R
-import com.habitseed.app.ui.theme.ForestGreen
-import com.habitseed.app.ui.theme.Cream
 
 @Composable
 fun SplashScreen(
@@ -37,9 +35,12 @@ fun SplashScreen(
 ) {
     val destination by viewModel.destination.collectAsState()
     val view = LocalView.current
-    val appBackgroundColor = Cream.toArgb()
+    val appBackgroundColor = MaterialTheme.colorScheme.background.toArgb()
+    val splashColor = MaterialTheme.colorScheme.primary
+    val splashBarColor = splashColor.toArgb()
+    val useLightSplashBars = splashColor.luminance() > 0.5f
 
-    DisposableEffect(view) {
+    DisposableEffect(view, appBackgroundColor, splashBarColor, useLightSplashBars) {
         val window = (view.context as? Activity)?.window
         val originalStatusBarColor = window?.statusBarColor
         val originalNavigationBarColor = window?.navigationBarColor
@@ -47,17 +48,19 @@ fun SplashScreen(
             WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars
         }
 
-        window?.statusBarColor = ForestGreen.toArgb()
-        window?.navigationBarColor = ForestGreen.toArgb()
+        window?.statusBarColor = splashBarColor
+        window?.navigationBarColor = splashBarColor
         window?.let {
-            WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = false
+            WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = useLightSplashBars
+            WindowCompat.getInsetsController(it, view).isAppearanceLightNavigationBars = useLightSplashBars
         }
 
         onDispose {
             if (window != null) {
                 window.statusBarColor = originalStatusBarColor ?: appBackgroundColor
                 window.navigationBarColor = originalNavigationBarColor ?: appBackgroundColor
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = originalAppearance ?: true
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = originalAppearance ?: useLightSplashBars
+                WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = originalAppearance ?: useLightSplashBars
             }
         }
     }
@@ -73,7 +76,7 @@ fun SplashScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ForestGreen)
+            .background(MaterialTheme.colorScheme.primary)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -90,7 +93,7 @@ fun SplashScreen(
                 text = "HabitSeed",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onPrimary
             )
         }
     }

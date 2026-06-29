@@ -12,23 +12,23 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = ForestGreen,
-    secondary = SunsetOrange,
+    primary = LeafGlow,
+    secondary = AmberGlow,
     tertiary = SunsetOrange,
-    background = Cream,
-    surface = White,
-    surfaceVariant = Mint,
-    primaryContainer = Sage,
-    secondaryContainer = Color(0xFFFFE7CC),
+    background = NightForest,
+    surface = NightSurface,
+    surfaceVariant = NightSurfaceHigh,
+    primaryContainer = NightSage,
+    secondaryContainer = Color(0xFF4A2A12),
     error = SoftRed,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
+    onPrimary = NightForest,
+    onSecondary = NightForest,
     onTertiary = Color.White,
-    onBackground = DarkSlate,
-    onSurface = DarkSlate,
-    onSurfaceVariant = LightGrey,
-    onPrimaryContainer = DarkSlate,
-    onSecondaryContainer = DarkSlate,
+    onBackground = NightText,
+    onSurface = NightText,
+    onSurfaceVariant = NightTextMuted,
+    onPrimaryContainer = NightText,
+    onSecondaryContainer = NightText,
     onError = Color.White
 )
 
@@ -65,7 +65,9 @@ fun HabitSeedTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
         }
     }
 

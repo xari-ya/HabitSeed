@@ -91,11 +91,19 @@ class AddHabitViewModel @Inject constructor(
                     "WEEKLY" -> 62
                     else -> null
                 },
-                plantTypeId = _selectedPlant.value.lowercase()
+                plantTypeId = plantTypeIdFor(_selectedPlant.value)
             )
             habitRepository.insertHabit(newHabit)
             resetForm()
             onSuccess()
+        }
+    }
+
+    private fun plantTypeIdFor(label: String): String {
+        return when (label.lowercase()) {
+            "monstera" -> "monstera_deliciosa"
+            "bonsai" -> "golden_bonsai"
+            else -> "succulent"
         }
     }
 }

@@ -14,8 +14,11 @@ interface ShopItemDao {
     @Query(
         """
         SELECT shop_items.*,
-               CASE WHEN purchases.id IS NOT NULL THEN 1 ELSE 0 END AS isPurchased
+               CASE WHEN purchases.id IS NOT NULL THEN 1 ELSE 0 END AS isPurchased,
+               COALESCE(plant_types.rarity, 'common') AS rarity
         FROM shop_items
+        LEFT JOIN plant_types
+            ON plant_types.id = shop_items.linkedPlantTypeId
         LEFT JOIN purchases
             ON purchases.shopItemId = shop_items.id
            AND purchases.userId = :userId

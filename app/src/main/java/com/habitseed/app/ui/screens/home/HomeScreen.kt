@@ -20,8 +20,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalFlorist
+import androidx.compose.material.icons.filled.LocalDrink
+import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -51,12 +56,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.habitseed.app.data.local.model.TodayHabitStatus
 import com.habitseed.app.ui.components.PlantVisualizer
 import com.habitseed.app.ui.screens.addhabit.AddHabitSheet
-import com.habitseed.app.ui.theme.DarkSlate
-import com.habitseed.app.ui.theme.ForestGreen
 import com.habitseed.app.ui.theme.HabitSeedDimens
-import com.habitseed.app.ui.theme.LightGrey
-import com.habitseed.app.ui.theme.Sage
-import com.habitseed.app.ui.theme.SunsetOrange
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,8 +74,8 @@ fun HomeScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddHabitSheet = true },
-                containerColor = SunsetOrange,
-                contentColor = Color.White
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "Add Habit")
             }
@@ -110,7 +110,7 @@ fun HomeScreen(
                 Text(
                     text = "Today's habits",
                     style = MaterialTheme.typography.titleMedium,
-                    color = DarkSlate,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -151,14 +151,14 @@ private fun GreetingHeader(
             Text(
                 text = "${greetingForTime()}, $name!",
                 style = MaterialTheme.typography.titleLarge,
-                color = DarkSlate,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.ExtraBold
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "Let's keep your garden thriving today.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = LightGrey
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -167,12 +167,12 @@ private fun GreetingHeader(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Sage),
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = name.take(1).uppercase(),
-                    color = ForestGreen,
+                    color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -181,7 +181,7 @@ private fun GreetingHeader(
             Text(
                 text = "$waterDrops drops",
                 style = MaterialTheme.typography.labelLarge,
-                color = ForestGreen
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }
@@ -197,7 +197,7 @@ private fun DashboardHeroCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(HabitSeedDimens.CardRadius),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
@@ -212,13 +212,13 @@ private fun DashboardHeroCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Surface(
-                    color = Sage,
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     shape = RoundedCornerShape(18.dp)
                 ) {
                     Text(
                         text = "$progressPercent% complete",
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                        color = ForestGreen,
+                        color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -227,14 +227,14 @@ private fun DashboardHeroCard(
                 Text(
                     text = "Your greenhouse",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = DarkSlate,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.ExtraBold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = encouragementText(progressPercent, scheduledToday),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = LightGrey
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 LinearProgressIndicator(
@@ -243,14 +243,14 @@ private fun DashboardHeroCard(
                         .fillMaxWidth()
                         .height(10.dp)
                         .clip(RoundedCornerShape(999.dp)),
-                    color = ForestGreen,
-                    trackColor = Sage
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primaryContainer
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = "$completedToday of $scheduledToday habits watered today",
                     style = MaterialTheme.typography.labelMedium,
-                    color = LightGrey
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -268,7 +268,7 @@ private fun DashboardHeroCard(
 private fun EmptyGardenCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(HabitSeedDimens.CardRadius),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
@@ -286,7 +286,7 @@ private fun EmptyGardenCard() {
             Text(
                 text = "Your garden is ready for its first seed.",
                 style = MaterialTheme.typography.titleMedium,
-                color = DarkSlate,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
@@ -294,7 +294,7 @@ private fun EmptyGardenCard() {
             Text(
                 text = "Tap the orange button to plant a new habit and start growing.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = LightGrey,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
         }
@@ -307,11 +307,12 @@ private fun TodayHabitRow(
     onClick: () -> Unit
 ) {
     val habit = habitStatus.habit
+    val habitColor = colorFromHex(habit.colorHex)
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(HabitSeedDimens.CardRadius),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -325,13 +326,13 @@ private fun TodayHabitRow(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Sage),
+                    .background(habitColor.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = iconForHabit(habit.iconName),
-                    contentDescription = null,
-                    tint = ForestGreen
+                    contentDescription = habit.title,
+                    tint = habitColor
                 )
             }
             Spacer(modifier = Modifier.width(14.dp))
@@ -341,14 +342,14 @@ private fun TodayHabitRow(
                 Text(
                     text = habit.title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = DarkSlate,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = habit.frequency,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = LightGrey
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(
@@ -357,18 +358,26 @@ private fun TodayHabitRow(
                 ) {
                     StatusPill(
                         text = if (habitStatus.isCompletedToday) "Watered" else "Ready",
-                        background = if (habitStatus.isCompletedToday) ForestGreen else Sage,
-                        contentColor = if (habitStatus.isCompletedToday) Color.White else ForestGreen
+                        background = if (habitStatus.isCompletedToday) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.primaryContainer
+                        },
+                        contentColor = if (habitStatus.isCompletedToday) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        }
                     )
                     Text(
                         text = "${habit.currentStreak} day streak",
                         style = MaterialTheme.typography.labelMedium,
-                        color = LightGrey
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = "+10 drops",
                         style = MaterialTheme.typography.labelMedium,
-                        color = SunsetOrange,
+                        color = MaterialTheme.colorScheme.secondary,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -378,13 +387,23 @@ private fun TodayHabitRow(
                 modifier = Modifier
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(if (habitStatus.isCompletedToday) ForestGreen else Sage),
+                    .background(
+                        if (habitStatus.isCompletedToday) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.primaryContainer
+                        }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Filled.Check,
                     contentDescription = if (habitStatus.isCompletedToday) "Completed today" else "Not completed yet",
-                    tint = if (habitStatus.isCompletedToday) Color.White else ForestGreen,
+                    tint = if (habitStatus.isCompletedToday) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -414,9 +433,21 @@ private fun StatusPill(
 
 private fun iconForHabit(iconName: String): ImageVector {
     return when (iconName.lowercase()) {
-        "flower", "plant" -> Icons.Filled.LocalFlorist
+        "sprout", "grow", "plant" -> Icons.Filled.Spa
+        "flower" -> Icons.Filled.LocalFlorist
+        "water", "hydrate" -> Icons.Filled.LocalDrink
+        "mind", "mindful" -> Icons.Filled.SelfImprovement
+        "heart", "health" -> Icons.Filled.Favorite
+        "book", "learn" -> Icons.Filled.Book
+        "spark", "routine" -> Icons.Filled.AutoAwesome
         else -> Icons.Filled.Spa
     }
+}
+
+@Composable
+private fun colorFromHex(colorHex: String): Color {
+    return runCatching { Color(android.graphics.Color.parseColor(colorHex)) }
+        .getOrDefault(MaterialTheme.colorScheme.primary)
 }
 
 private fun greetingForTime(): String {

@@ -54,12 +54,7 @@ import com.habitseed.app.data.local.entity.HabitLogEntity
 import com.habitseed.app.ui.components.PlantVisualizer
 import com.habitseed.app.ui.components.StatCard
 import com.habitseed.app.ui.components.SwipeToCompleteSlider
-import com.habitseed.app.ui.theme.Cream
-import com.habitseed.app.ui.theme.DarkSlate
 import com.habitseed.app.ui.theme.ForestGreen
-import com.habitseed.app.ui.theme.LightGrey
-import com.habitseed.app.ui.theme.Sage
-import com.habitseed.app.ui.theme.SunsetOrange
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -83,20 +78,20 @@ fun HabitDetailScreen(
     val habit = uiState.habit
     if (habit == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = ForestGreen)
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
         return
     }
 
     Scaffold(
-        containerColor = Cream,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Cream)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             Box(
                 modifier = Modifier
@@ -180,7 +175,7 @@ fun HabitDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(0.52f),
-                color = Cream,
+                color = MaterialTheme.colorScheme.background,
                 shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
             ) {
                 Column(
@@ -213,7 +208,7 @@ fun HabitDetailScreen(
                     Text(
                         text = "Recent watering",
                         style = MaterialTheme.typography.titleMedium,
-                        color = DarkSlate,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(10.dp))
@@ -239,14 +234,14 @@ fun HabitDetailScreen(
 private fun DailyLogStrip(logs: List<HabitLogEntity>) {
     if (logs.isEmpty()) {
         Surface(
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(20.dp)
         ) {
             Text(
                 text = "No watering history yet. Your first swipe will start the streak.",
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                 style = MaterialTheme.typography.bodyMedium,
-                color = LightGrey
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         return
@@ -260,7 +255,11 @@ private fun DailyLogStrip(logs: List<HabitLogEntity>) {
             val date = com.habitseed.app.domain.util.DateUtils.parseDateKey(log.dateKey)
             val dayLabel = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
             Surface(
-                color = if (log.isCompleted) Sage else Color.White,
+                color = if (log.isCompleted) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surface
+                },
                 shape = RoundedCornerShape(18.dp)
             ) {
                 Column(
@@ -270,7 +269,7 @@ private fun DailyLogStrip(logs: List<HabitLogEntity>) {
                     Text(
                         text = dayLabel,
                         style = MaterialTheme.typography.labelLarge,
-                        color = DarkSlate,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -278,13 +277,23 @@ private fun DailyLogStrip(logs: List<HabitLogEntity>) {
                         modifier = Modifier
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(if (log.isCompleted) SunsetOrange else Color.White),
+                            .background(
+                                if (log.isCompleted) {
+                                    MaterialTheme.colorScheme.secondary
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                }
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Filled.WaterDrop,
                             contentDescription = null,
-                            tint = if (log.isCompleted) Color.White else LightGrey,
+                            tint = if (log.isCompleted) {
+                                MaterialTheme.colorScheme.onSecondary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -297,7 +306,7 @@ private fun DailyLogStrip(logs: List<HabitLogEntity>) {
 @Composable
 private fun CelebrationBubble() {
     Surface(
-        color = SunsetOrange,
+        color = MaterialTheme.colorScheme.secondary,
         shape = RoundedCornerShape(999.dp),
         shadowElevation = 4.dp
     ) {
@@ -308,13 +317,13 @@ private fun CelebrationBubble() {
             Icon(
                 imageVector = Icons.Filled.WaterDrop,
                 contentDescription = null,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onSecondary,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "+10 drops earned",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSecondary,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold
             )

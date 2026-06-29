@@ -54,13 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.habitseed.app.R
-import com.habitseed.app.ui.theme.Cream
-import com.habitseed.app.ui.theme.ForestGreen
 import com.habitseed.app.ui.theme.HabitSeedDimens
-import com.habitseed.app.ui.theme.LightGrey
-import com.habitseed.app.ui.theme.Mint
-import com.habitseed.app.ui.theme.Sage
-import com.habitseed.app.ui.theme.White
 
 @Composable
 fun LoginScreen(
@@ -80,13 +74,13 @@ fun LoginScreen(
     }
 
     Scaffold(
-        containerColor = Cream,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Cream)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 20.dp),
@@ -96,7 +90,7 @@ fun LoginScreen(
             Box(
                 modifier = Modifier
                     .size(74.dp)
-                    .background(Sage, CircleShape),
+                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -116,7 +110,7 @@ fun LoginScreen(
             Text(
                 text = "Log in to keep growing your garden one habit at a time.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = LightGrey,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(28.dp))
@@ -124,7 +118,7 @@ fun LoginScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(HabitSeedDimens.CardRadius),
-                colors = CardDefaults.cardColors(containerColor = White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
             ) {
                 Column(
@@ -135,7 +129,7 @@ fun LoginScreen(
                     Text(
                         text = "Log In",
                         style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(18.dp))
@@ -188,7 +182,7 @@ fun LoginScreen(
                         TextButton(onClick = viewModel::onForgotPasswordClicked) {
                             Text(
                                 text = "Forgot Password?",
-                                color = ForestGreen,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -201,14 +195,14 @@ fun LoginScreen(
                         enabled = !uiState.isLoading,
                         shape = RoundedCornerShape(HabitSeedDimens.ButtonRadius),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = ForestGreen,
-                            contentColor = Color.White
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 strokeWidth = 2.dp
                             )
                         } else {
@@ -225,17 +219,17 @@ fun LoginScreen(
                     ) {
                         HorizontalDivider(
                             modifier = Modifier.weight(1f),
-                            color = Mint
+                            color = MaterialTheme.colorScheme.surfaceVariant
                         )
                         Text(
                             text = "OR",
                             modifier = Modifier.padding(horizontal = 12.dp),
                             style = MaterialTheme.typography.labelMedium,
-                            color = LightGrey
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         HorizontalDivider(
                             modifier = Modifier.weight(1f),
-                            color = Mint
+                            color = MaterialTheme.colorScheme.surfaceVariant
                         )
                     }
                     Spacer(modifier = Modifier.height(20.dp))
@@ -267,7 +261,7 @@ private fun SocialLoginButton(
         shape = RoundedCornerShape(HabitSeedDimens.ButtonRadius),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = Color.Transparent,
-            contentColor = MaterialTheme.colorScheme.onBackground
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Icon(
@@ -284,13 +278,13 @@ private fun SocialLoginButton(
 
 @Composable
 private fun loginFieldColors() = TextFieldDefaults.colors(
-    focusedContainerColor = White,
-    unfocusedContainerColor = White,
-    disabledContainerColor = White,
-    errorContainerColor = White,
-    focusedIndicatorColor = ForestGreen,
-    unfocusedIndicatorColor = Mint,
+    focusedContainerColor = MaterialTheme.colorScheme.surface,
+    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+    disabledContainerColor = MaterialTheme.colorScheme.surface,
+    errorContainerColor = MaterialTheme.colorScheme.surface,
+    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+    unfocusedIndicatorColor = MaterialTheme.colorScheme.surfaceVariant,
     errorIndicatorColor = MaterialTheme.colorScheme.error,
-    focusedLabelColor = ForestGreen,
-    cursorColor = ForestGreen
+    focusedLabelColor = MaterialTheme.colorScheme.primary,
+    cursorColor = MaterialTheme.colorScheme.primary
 )

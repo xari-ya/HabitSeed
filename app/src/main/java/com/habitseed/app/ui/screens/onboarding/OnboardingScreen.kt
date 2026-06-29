@@ -34,13 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.habitseed.app.R
-import com.habitseed.app.ui.theme.Cream
-import com.habitseed.app.ui.theme.ForestGreen
 import com.habitseed.app.ui.theme.HabitSeedDimens
-import com.habitseed.app.ui.theme.LightGrey
-import com.habitseed.app.ui.theme.Mint
-import com.habitseed.app.ui.theme.Sage
-import com.habitseed.app.ui.theme.White
 
 @Composable
 fun OnboardingScreen(
@@ -50,7 +44,7 @@ fun OnboardingScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Cream)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Box(
             modifier = Modifier
@@ -66,7 +60,10 @@ fun OnboardingScreen(
                     .clip(RoundedCornerShape(36.dp))
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = listOf(White, Mint)
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surface,
+                                MaterialTheme.colorScheme.surfaceVariant
+                            )
                         )
                     )
             ) {
@@ -76,7 +73,7 @@ fun OnboardingScreen(
                         .align(Alignment.Center)
                         .size(220.dp)
                         .clip(CircleShape)
-                        .background(Sage.copy(alpha = 0.55f))
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f))
                 )
                 Image(
                     painter = painterResource(id = R.drawable.seed_logo_transparent),
@@ -92,7 +89,7 @@ fun OnboardingScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(0.42f),
-            color = Cream,
+            color = MaterialTheme.colorScheme.background,
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
         ) {
             Column(
@@ -113,7 +110,7 @@ fun OnboardingScreen(
                 Text(
                     text = "Turn your daily routines into a thriving digital garden.",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = LightGrey,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(22.dp))
@@ -126,8 +123,8 @@ fun OnboardingScreen(
                         .height(HabitSeedDimens.ButtonHeight),
                     shape = RoundedCornerShape(HabitSeedDimens.ButtonRadius),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = ForestGreen,
-                        contentColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
                     Text(
@@ -154,7 +151,7 @@ private fun OnboardingDots() {
                     .size(width = if (isActive) 24.dp else 8.dp, height = 8.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isActive) ForestGreen else Sage
+                        if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer
                     )
             )
         }
@@ -163,28 +160,32 @@ private fun OnboardingDots() {
 
 @Composable
 private fun DecorativeLeaves() {
+    val leafBase = MaterialTheme.colorScheme.primaryContainer
+    val leafSoft = MaterialTheme.colorScheme.surfaceVariant
+    val vine = MaterialTheme.colorScheme.primary
+
     Canvas(
         modifier = Modifier.fillMaxSize()
     ) {
         drawCircle(
-            color = Sage.copy(alpha = 0.4f),
+            color = leafBase.copy(alpha = 0.4f),
             radius = size.minDimension * 0.22f,
             center = Offset(size.width * 0.22f, size.height * 0.26f)
         )
         drawCircle(
-            color = Mint.copy(alpha = 0.9f),
+            color = leafSoft.copy(alpha = 0.9f),
             radius = size.minDimension * 0.18f,
             center = Offset(size.width * 0.78f, size.height * 0.22f)
         )
         drawLine(
-            color = ForestGreen.copy(alpha = 0.18f),
+            color = vine.copy(alpha = 0.18f),
             start = Offset(size.width * 0.18f, size.height * 0.88f),
             end = Offset(size.width * 0.34f, size.height * 0.64f),
             strokeWidth = 14f,
             cap = StrokeCap.Round
         )
         drawLine(
-            color = ForestGreen.copy(alpha = 0.14f),
+            color = vine.copy(alpha = 0.14f),
             start = Offset(size.width * 0.82f, size.height * 0.82f),
             end = Offset(size.width * 0.68f, size.height * 0.56f),
             strokeWidth = 14f,

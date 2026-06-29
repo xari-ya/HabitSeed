@@ -37,6 +37,11 @@ object DatabaseModule {
         )
         .fallbackToDestructiveMigration()
         .addCallback(object : RoomDatabase.Callback() {
+            override fun onOpen(db: SupportSQLiteDatabase) {
+                super.onOpen(db)
+                seedStoreCatalog(db)
+            }
+
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
                 val now = System.currentTimeMillis()
@@ -62,17 +67,10 @@ object DatabaseModule {
                     """.trimIndent()
                 )
                 db.execSQL("INSERT INTO plant_types (id, name, description, rarity, assetName, priceDrops, isDefault) VALUES ('succulent', 'Succulent', 'Easygoing starter plant.', 'common', 'plant_succulent', 0, 1)")
-                db.execSQL("INSERT INTO plant_types (id, name, description, rarity, assetName, priceDrops, isDefault) VALUES ('bonsai', 'Bonsai Tree', 'Calm and patient.', 'rare', 'plant_succulent', 300, 0)")
-                db.execSQL("INSERT INTO plant_types (id, name, description, rarity, assetName, priceDrops, isDefault) VALUES ('venus_flytrap', 'Venus Flytrap', 'Sharp focus energy.', 'rare', 'plant_succulent', 450, 0)")
-                db.execSQL("INSERT INTO plant_types (id, name, description, rarity, assetName, priceDrops, isDefault) VALUES ('sakura_bonsai', 'Sakura Bonsai', 'A delicate bloom.', 'epic', 'plant_succulent', 600, 0)")
-                db.execSQL("INSERT INTO plant_types (id, name, description, rarity, assetName, priceDrops, isDefault) VALUES ('desert_cactus', 'Desert Cactus', 'Built for consistency.', 'common', 'plant_succulent', 250, 0)")
 
                 db.execSQL("INSERT INTO user_unlocked_plants (userId, plantTypeId, unlockedAt) VALUES ('local_user', 'succulent', $now)")
 
-                db.execSQL("INSERT INTO shop_items (id, name, description, priceDrops, itemType, assetName, linkedPlantTypeId, linkedThemeKey, isActive) VALUES ('plant_bonsai', 'Bonsai Tree', 'Shape calm habits over time.', 300, 'PLANT', 'plant_succulent', 'bonsai', NULL, 1)")
-                db.execSQL("INSERT INTO shop_items (id, name, description, priceDrops, itemType, assetName, linkedPlantTypeId, linkedThemeKey, isActive) VALUES ('plant_venus_flytrap', 'Venus Flytrap', 'A bold reward for tough routines.', 450, 'PLANT', 'plant_succulent', 'venus_flytrap', NULL, 1)")
-                db.execSQL("INSERT INTO shop_items (id, name, description, priceDrops, itemType, assetName, linkedPlantTypeId, linkedThemeKey, isActive) VALUES ('plant_sakura_bonsai', 'Sakura Bonsai', 'Bloom slowly, beautifully.', 600, 'PLANT', 'plant_succulent', 'sakura_bonsai', NULL, 1)")
-                db.execSQL("INSERT INTO shop_items (id, name, description, priceDrops, itemType, assetName, linkedPlantTypeId, linkedThemeKey, isActive) VALUES ('plant_desert_cactus', 'Desert Cactus', 'Low drama, high resilience.', 250, 'PLANT', 'plant_succulent', 'desert_cactus', NULL, 1)")
+                seedStoreCatalog(db)
 
                 db.execSQL("INSERT INTO friends (name, avatarAssetName, currentStreak, highestPlantAssetName, lastActiveDateKey, isMock) VALUES ('Sam', NULL, 8, 'plant_succulent', '2026-06-29', 1)")
                 db.execSQL("INSERT INTO friends (name, avatarAssetName, currentStreak, highestPlantAssetName, lastActiveDateKey, isMock) VALUES ('Maya', NULL, 13, 'plant_succulent', '2026-06-29', 1)")
@@ -80,6 +78,22 @@ object DatabaseModule {
             }
         })
         .build()
+    }
+
+    private fun seedStoreCatalog(db: SupportSQLiteDatabase) {
+        db.execSQL("UPDATE shop_items SET isActive = 0 WHERE id IN ('plant_bonsai', 'plant_venus_flytrap', 'plant_sakura_bonsai', 'plant_desert_cactus')")
+        db.execSQL("INSERT OR IGNORE INTO plant_types (id, name, description, rarity, assetName, priceDrops, isDefault) VALUES ('starter_fern', 'Starter Fern', 'A simple first step for your garden.', 'basic', 'plant_starter_fern', 100, 0)")
+        db.execSQL("INSERT OR IGNORE INTO plant_types (id, name, description, rarity, assetName, priceDrops, isDefault) VALUES ('desert_cactus', 'Desert Cactus', 'Tough, steady, and perfect for consistency.', 'basic', 'plant_desert_cactus', 150, 0)")
+        db.execSQL("INSERT OR IGNORE INTO plant_types (id, name, description, rarity, assetName, priceDrops, isDefault) VALUES ('monstera_deliciosa', 'Monstera Deliciosa', 'A lush reward for stronger routines.', 'rare', 'plant_monstera', 350, 0)")
+        db.execSQL("INSERT OR IGNORE INTO plant_types (id, name, description, rarity, assetName, priceDrops, isDefault) VALUES ('water_lily', 'Water Lily', 'Calm focus floating above the noise.', 'rare', 'plant_water_lily', 500, 0)")
+        db.execSQL("INSERT OR IGNORE INTO plant_types (id, name, description, rarity, assetName, priceDrops, isDefault) VALUES ('golden_bonsai', 'Golden Bonsai', 'A rare masterpiece for your most disciplined season.', 'epic', 'plant_golden_bonsai', 1000, 0)")
+
+        db.execSQL("INSERT OR IGNORE INTO shop_items (id, name, description, priceDrops, itemType, assetName, linkedPlantTypeId, linkedThemeKey, isActive) VALUES ('plant_starter_fern', 'Starter Fern', 'A calm beginning for new habits.', 100, 'PLANT', 'plant_starter_fern', 'starter_fern', NULL, 1)")
+        db.execSQL("INSERT OR IGNORE INTO shop_items (id, name, description, priceDrops, itemType, assetName, linkedPlantTypeId, linkedThemeKey, isActive) VALUES ('plant_desert_cactus_new', 'Desert Cactus', 'Hardy progress with low-drama energy.', 150, 'PLANT', 'plant_desert_cactus', 'desert_cactus', NULL, 1)")
+        db.execSQL("INSERT OR IGNORE INTO shop_items (id, name, description, priceDrops, itemType, assetName, linkedPlantTypeId, linkedThemeKey, isActive) VALUES ('plant_monstera_deliciosa', 'Monstera Deliciosa', 'Big leaves for bold routines.', 350, 'PLANT', 'plant_monstera', 'monstera_deliciosa', NULL, 1)")
+        db.execSQL("INSERT OR IGNORE INTO shop_items (id, name, description, priceDrops, itemType, assetName, linkedPlantTypeId, linkedThemeKey, isActive) VALUES ('plant_water_lily', 'Water Lily', 'A serene bloom for balanced days.', 500, 'PLANT', 'plant_water_lily', 'water_lily', NULL, 1)")
+        db.execSQL("INSERT OR IGNORE INTO shop_items (id, name, description, priceDrops, itemType, assetName, linkedPlantTypeId, linkedThemeKey, isActive) VALUES ('plant_golden_bonsai', 'Golden Bonsai', 'An epic tree for your strongest streaks.', 1000, 'PLANT', 'plant_golden_bonsai', 'golden_bonsai', NULL, 1)")
+        db.execSQL("UPDATE shop_items SET isActive = 1 WHERE id IN ('plant_starter_fern', 'plant_desert_cactus_new', 'plant_monstera_deliciosa', 'plant_water_lily', 'plant_golden_bonsai')")
     }
 
     @Provides

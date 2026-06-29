@@ -13,9 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
-import com.habitseed.app.R
 import kotlin.math.roundToInt
-import java.util.Locale
 
 @Composable
 fun PlantVisualizer(
@@ -24,10 +22,7 @@ fun PlantVisualizer(
     modifier: Modifier = Modifier
 ) {
     val normalizedGrowthLevel = growthLevel.coerceAtLeast(0)
-    val imageRes = when (plantType.lowercase(Locale.ROOT)) {
-        "succulent" -> R.drawable.plant_succulent
-        else -> R.drawable.plant_succulent
-    }
+    val imageRes = plantAssetFor(plantType)
 
     val infiniteTransition = rememberInfiniteTransition(label = "float_animation")
     val floatOffset by infiniteTransition.animateFloat(

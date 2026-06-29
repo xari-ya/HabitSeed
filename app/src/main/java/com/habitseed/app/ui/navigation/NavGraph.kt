@@ -4,16 +4,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.habitseed.app.ui.screens.login.LoginScreen
 import com.habitseed.app.ui.screens.onboarding.OnboardingScreen
-import com.habitseed.app.ui.screens.placeholders.FutureScreenPlaceholder
+import com.habitseed.app.ui.screens.profile.ProfileScreen
+import com.habitseed.app.ui.screens.social.SocialScreen
 import com.habitseed.app.ui.screens.shop.ShopScreen
 import com.habitseed.app.ui.screens.splash.SplashScreen
 import com.habitseed.app.ui.screens.splash.SplashViewModel
+import com.habitseed.app.ui.screens.stats.StatsScreen
 
 @Composable
 fun HabitSeedNavGraph(
@@ -87,10 +90,7 @@ fun HabitSeedNavGraph(
         }
 
         composable(Screen.Stats.route) {
-            FutureScreenPlaceholder(
-                title = "Stats",
-                subtitle = "Statistics and harvest insights will be built in the dedicated stats step."
-            )
+            StatsScreen()
         }
         
         composable(Screen.AddHabit.route) {
@@ -104,16 +104,19 @@ fun HabitSeedNavGraph(
         }
 
         composable(Screen.Social.route) {
-            FutureScreenPlaceholder(
-                title = "Social",
-                subtitle = "Friends and accountability features will be added in the social step."
-            )
+            SocialScreen()
         }
 
         composable(Screen.Profile.route) {
-            FutureScreenPlaceholder(
-                title = "Profile",
-                subtitle = "Profile and settings will be added in the dedicated profile step."
+            ProfileScreen(
+                onLogout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
     }
