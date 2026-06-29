@@ -2,6 +2,7 @@ package com.habitseed.app.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.ColumnInfo
 
 @Entity(tableName = "users")
 data class UserEntity(
@@ -10,6 +11,15 @@ data class UserEntity(
     val name: String,
     val email: String? = null,
     val avatarAssetName: String? = null,
+    val firebaseUid: String? = null,
+    @ColumnInfo(defaultValue = "'local'")
+    val authProvider: String = "local",
+    val avatarUrl: String? = null,
+    @ColumnInfo(defaultValue = "0")
+    val emailVerified: Boolean = false,
+    val lastLoginAt: Long? = null,
+    val lastCloudSyncAt: Long? = null,
+    val publicProfileSyncHash: String? = null,
     val joinedAt: Long = System.currentTimeMillis(),
     val waterDrops: Int = 0,
     val currentStreak: Int = 0,

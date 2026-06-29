@@ -10,3 +10,4 @@ ui screens/
 build/
 app/build/
 *.iml
+app/google-services.json

@@ -2,6 +2,9 @@ package com.habitseed.app.ui.screens.splash
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.habitseed.app.data.auth.AuthRepository
+import com.habitseed.app.data.social.PublicProfileSyncReason
+import com.habitseed.app.data.social.SocialSyncRepository
 import com.habitseed.app.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -14,7 +17,9 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class SplashViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val authRepository: AuthRepository,
+    private val socialSyncRepository: SocialSyncRepository
 ) : ViewModel() {
 
     private val _destination = MutableStateFlow<SplashDestination?>(null)
@@ -22,12 +27,26 @@ class SplashViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val onboardingComplete = userRepository.getUser().first()?.onboardingComplete == true
+            val localUser = userRepository.getUser().first()
+            val authUser = authRepository.currentUser()
+            if (authUser != null) {
+                val shouldMergeAuthUser = localUser == null ||
+                    localUser.firebaseUid != authUser.uid ||
+                    localUser.authProvider != "google"
+                if (shouldMergeAuthUser) {
+                    runCatching {
+                        userRepository.upsertGoogleUser(authUser)
+                    }
+                }
+                viewModelScope.launch {
+                    socialSyncRepository.syncPublicProfile(PublicProfileSyncReason.APP_START)
+                }
+            }
             delay(SPLASH_DELAY_MS)
-            _destination.value = if (onboardingComplete) {
-                SplashDestination.Home
-            } else {
-                SplashDestination.Onboarding
+            _destination.value = when {
+                authUser != null -> SplashDestination.Home
+                localUser?.onboardingComplete == true -> SplashDestination.Login
+                else -> SplashDestination.Onboarding
             }
         }
     }
@@ -39,5 +58,6 @@ class SplashViewModel @Inject constructor(
 
 enum class SplashDestination {
     Onboarding,
+    Login,
     Home
 }

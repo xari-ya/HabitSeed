@@ -5,6 +5,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.habitseed.app.data.local.AppDatabase
+import com.habitseed.app.data.local.dao.CachedFollowingProfileDao
+import com.habitseed.app.data.local.dao.CachedLeaderboardProfileDao
 import com.habitseed.app.data.local.dao.FriendDao
 import com.habitseed.app.data.local.dao.FriendNudgeDao
 import com.habitseed.app.data.local.dao.HabitDao
@@ -12,6 +14,7 @@ import com.habitseed.app.data.local.dao.HabitLogDao
 import com.habitseed.app.data.local.dao.PlantTypeDao
 import com.habitseed.app.data.local.dao.PurchaseDao
 import com.habitseed.app.data.local.dao.ShopItemDao
+import com.habitseed.app.data.local.dao.SocialCacheMetadataDao
 import com.habitseed.app.data.local.dao.UserDao
 import com.habitseed.app.data.local.dao.UserSettingsDao
 import dagger.Module
@@ -35,6 +38,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             AppDatabase.DATABASE_NAME
         )
+        .addMigrations(AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
         .fallbackToDestructiveMigration()
         .addCallback(object : RoomDatabase.Callback() {
             override fun onOpen(db: SupportSQLiteDatabase) {
@@ -122,4 +126,16 @@ object DatabaseModule {
 
     @Provides
     fun provideFriendNudgeDao(db: AppDatabase): FriendNudgeDao = db.friendNudgeDao()
+
+    @Provides
+    fun provideCachedLeaderboardProfileDao(db: AppDatabase): CachedLeaderboardProfileDao =
+        db.cachedLeaderboardProfileDao()
+
+    @Provides
+    fun provideCachedFollowingProfileDao(db: AppDatabase): CachedFollowingProfileDao =
+        db.cachedFollowingProfileDao()
+
+    @Provides
+    fun provideSocialCacheMetadataDao(db: AppDatabase): SocialCacheMetadataDao =
+        db.socialCacheMetadataDao()
 }

@@ -3,8 +3,7 @@ plugins {
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    // Uncomment this when you add google-services.json
-    // alias(libs.plugins.googleServices)
+    alias(libs.plugins.googleServices)
 }
 
 android {
@@ -79,12 +78,18 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     
     // Firebase
-    // implementation(platform(libs.firebase.bom))
-    // implementation(libs.firebase.auth.ktx)
-    // implementation(libs.firebase.firestore.ktx)
+    implementation(platform("com.google.firebase:firebase-bom:33.8.0"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
     
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services)
+
+    // Credential Manager / Google Sign-In
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
     
     // Coil
     implementation(libs.coil.compose)

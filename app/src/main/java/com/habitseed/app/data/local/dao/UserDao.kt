@@ -13,6 +13,9 @@ interface UserDao {
     @Query("SELECT * FROM users LIMIT 1")
     fun getUser(): Flow<UserEntity?>
 
+    @Query("SELECT * FROM users LIMIT 1")
+    fun observeCurrentUser(): Flow<UserEntity?>
+
     @Query("SELECT * FROM users WHERE id = :userId LIMIT 1")
     suspend fun getUserById(userId: String = "local_user"): UserEntity?
 
@@ -57,4 +60,18 @@ interface UserDao {
         bestStreak: Int,
         updatedAt: Long
     )
+
+    @Query(
+        """
+        UPDATE users
+        SET lastCloudSyncAt = :syncedAt,
+            publicProfileSyncHash = :publicProfileSyncHash
+        WHERE id = :userId
+        """
+    )
+    suspend fun updateLastCloudSyncAt(
+        syncedAt: Long,
+        publicProfileSyncHash: String,
+        userId: String = "local_user"
+    ): Int
 }

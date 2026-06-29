@@ -18,13 +18,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.VolumeUp
@@ -32,6 +30,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -46,16 +45,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.habitseed.app.ui.theme.DarkSlate
-import com.habitseed.app.ui.theme.ForestGreen
 import com.habitseed.app.ui.theme.HabitSeedDimens
-import com.habitseed.app.ui.theme.SoftRed
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -63,17 +66,20 @@ import java.util.Locale
 
 @Composable
 fun ProfileScreen(
+    onEditProfile: () -> Unit,
     onLogout: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val clipboardManager = LocalClipboardManager.current
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
                 is ProfileEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
                 ProfileEvent.Logout -> onLogout()
+                ProfileEvent.ProfileSaved -> Unit
             }
         }
     }
@@ -95,8 +101,10 @@ fun ProfileScreen(
         ) {
             item {
                 ProfileHeader(
-                    name = user?.name ?: "Alex",
-                    email = user?.email ?: "alex@example.com",
+                    name = user?.name ?: "Gardener",
+                    email = user?.email ?: "Email not shared",
+                    avatarUrl = user?.avatarUrl,
+                    providerLabel = if (user?.authProvider == "google") "Google" else "Local",
                     joinedAt = user?.joinedAt ?: System.currentTimeMillis()
                 )
             }
@@ -116,16 +124,20 @@ fun ProfileScreen(
                         SettingRowAction(
                             icon = Icons.Filled.Edit,
                             title = "Edit Profile",
-                            subtitle = "Update your identity details",
-                            onClick = { viewModel.onMockAction("Edit Profile") }
-                        ),
-                        SettingRowAction(
-                            icon = Icons.Filled.Lock,
-                            title = "Change Password",
-                            subtitle = "Demo-only security action",
-                            onClick = { viewModel.onMockAction("Change Password") }
+                            subtitle = "Update your name and profile image",
+                            onClick = onEditProfile
                         )
                     )
+                )
+            }
+
+            item {
+                FirebaseUidCard(
+                    firebaseUid = user?.firebaseUid,
+                    clipboardManager = clipboardManager,
+                    onCopy = { message ->
+                        viewModel.showMessage(message)
+                    }
                 )
             }
 
@@ -149,22 +161,10 @@ fun ProfileScreen(
 
             item {
                 SettingsGroupCard(
-                    title = "Support",
+                    title = "Session",
                     rows = listOf(
                         SettingRowAction(
-                            icon = Icons.Filled.HelpOutline,
-                            title = "FAQ",
-                            subtitle = "Common guidance for using HabitSeed",
-                            onClick = { viewModel.onMockAction("FAQ") }
-                        ),
-                        SettingRowAction(
-                            icon = Icons.Filled.Phone,
-                            title = "Contact Us",
-                            subtitle = "Reach the project owner",
-                            onClick = { viewModel.onMockAction("Contact Us") }
-                        ),
-                        SettingRowAction(
-                            icon = Icons.Filled.Logout,
+                            icon = Icons.Filled.Lock,
                             title = "Log Out",
                             subtitle = "Return to the login screen",
                             tint = MaterialTheme.colorScheme.error,
@@ -182,6 +182,8 @@ fun ProfileScreen(
 private fun ProfileHeader(
     name: String,
     email: String,
+    avatarUrl: String?,
+    providerLabel: String,
     joinedAt: Long
 ) {
     Column(
@@ -191,7 +193,8 @@ private fun ProfileHeader(
         Box(
             modifier = Modifier
                 .size(112.dp)
-                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -200,6 +203,14 @@ private fun ProfileHeader(
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.ExtraBold
             )
+            if (!avatarUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = "$name avatar",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
         }
         Spacer(modifier = Modifier.height(18.dp))
         Text(
@@ -212,6 +223,12 @@ private fun ProfileHeader(
         Text(
             text = email,
             style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Signed in with $providerLabel",
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(4.dp))
@@ -290,26 +307,28 @@ private data class SettingRowAction(
     val icon: ImageVector,
     val title: String,
     val subtitle: String,
-    val tint: Color = ForestGreen,
+    val tint: Color = Color.Unspecified,
     val titleColor: Color = DarkSlate,
     val onClick: () -> Unit
 )
 
 @Composable
 private fun resolvedRowTint(row: SettingRowAction): Color {
-    return if (row.tint == SoftRed || row.tint == MaterialTheme.colorScheme.error) {
+    return if (row.tint == Color.Unspecified) {
+        MaterialTheme.colorScheme.primary
+    } else if (row.tint == MaterialTheme.colorScheme.error) {
         MaterialTheme.colorScheme.error
     } else {
-        MaterialTheme.colorScheme.primary
+        row.tint
     }
 }
 
 @Composable
 private fun resolvedRowTitleColor(row: SettingRowAction): Color {
-    return if (row.titleColor == SoftRed || row.titleColor == MaterialTheme.colorScheme.error) {
+    return if (row.titleColor == MaterialTheme.colorScheme.error) {
         MaterialTheme.colorScheme.error
     } else {
-        MaterialTheme.colorScheme.onSurface
+        row.titleColor
     }
 }
 
@@ -385,12 +404,71 @@ private fun ActionRow(
         Icon(
             imageVector = Icons.Filled.ChevronRight,
             contentDescription = null,
-            tint = if (row.titleColor == MaterialTheme.colorScheme.error || row.titleColor == SoftRed) {
+            tint = if (row.titleColor == MaterialTheme.colorScheme.error) {
                 MaterialTheme.colorScheme.error
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             }
         )
+    }
+}
+
+@Composable
+private fun FirebaseUidCard(
+    firebaseUid: String?,
+    clipboardManager: ClipboardManager,
+    onCopy: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(HabitSeedDimens.CardRadius),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Firebase UID",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = firebaseUid ?: "Not linked yet",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                IconButton(
+                    onClick = {
+                        if (!firebaseUid.isNullOrBlank()) {
+                            clipboardManager.setText(AnnotatedString(firebaseUid))
+                            onCopy("Firebase UID copied")
+                        }
+                    },
+                    enabled = !firebaseUid.isNullOrBlank()
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.ContentCopy,
+                        contentDescription = "Copy Firebase UID",
+                        tint = if (firebaseUid.isNullOrBlank()) {
+                            MaterialTheme.colorScheme.outline
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        }
+                    )
+                }
+            }
+        }
     }
 }
 

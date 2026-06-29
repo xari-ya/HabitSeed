@@ -31,6 +31,7 @@ import com.habitseed.app.R
 fun SplashScreen(
     viewModel: SplashViewModel,
     onNavigateToOnboarding: () -> Unit,
+    onNavigateToLogin: () -> Unit,
     onNavigateToHome: () -> Unit
 ) {
     val destination by viewModel.destination.collectAsState()
@@ -68,6 +69,7 @@ fun SplashScreen(
     LaunchedEffect(destination) {
         when (destination) {
             SplashDestination.Onboarding -> onNavigateToOnboarding()
+            SplashDestination.Login -> onNavigateToLogin()
             SplashDestination.Home -> onNavigateToHome()
             null -> Unit
         }

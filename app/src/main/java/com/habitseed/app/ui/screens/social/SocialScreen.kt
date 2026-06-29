@@ -21,37 +21,51 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.LocalFlorist
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.habitseed.app.data.local.entity.FriendEntity
+import com.habitseed.app.data.social.dto.FollowingDto
+import com.habitseed.app.data.social.dto.PublicProfileDto
 import com.habitseed.app.ui.components.plantAssetFor
 import com.habitseed.app.ui.theme.HabitSeedDimens
 
@@ -61,6 +75,8 @@ fun SocialScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showAddFriendDialog by remember { mutableStateOf(false) }
+    var friendUid by remember { mutableStateOf("") }
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { message ->
@@ -70,7 +86,7 @@ fun SocialScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -85,53 +101,117 @@ fun SocialScreen(
             }
 
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    SocialTab.entries.forEach { tab ->
-                        FilterChip(
-                            modifier = Modifier.weight(1f),
-                            selected = uiState.selectedTab == tab,
-                            onClick = { viewModel.selectTab(tab) },
-                            label = {
-                                Text(
-                                    text = tab.label,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                labelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = uiState.selectedTab == tab,
-                                borderColor = Color.Transparent,
-                                selectedBorderColor = Color.Transparent
+                SocialTabs(
+                    selectedTab = uiState.selectedTab,
+                    onSelectTab = viewModel::selectTab
+                )
+            }
+
+            if (uiState.isGoogleSignedIn) {
+                if (uiState.selectedTab == SocialTab.Leaderboard) {
+                    item {
+                        LeaderboardActionRow(
+                            onRefresh = viewModel::refresh
+                        )
+                    }
+                } else {
+                    item {
+                        AddFriendCard(
+                            onAddFriend = { showAddFriendDialog = true }
+                        )
+                    }
+                }
+
+                if (uiState.errorMessage != null) {
+                    item {
+                        SocialMessageCard(
+                            title = "Could not refresh social data",
+                            message = "Showing the latest available social data. Your local habits still work offline."
+                        )
+                    }
+                }
+
+                if (uiState.isLoading) {
+                    item {
+                        LoadingSocialCard()
+                    }
+                } else if (uiState.selectedTab == SocialTab.Leaderboard) {
+                    if (uiState.leaderboard.isEmpty()) {
+                        item {
+                            SocialMessageCard(
+                                title = "No leaderboard yet",
+                                message = "Complete a habit after signing in and HabitSeed will publish your public garden summary."
                             )
+                        }
+                    } else {
+                        itemsIndexed(uiState.leaderboard, key = { _, profile -> profile.uid }) { index, profile ->
+                            LeaderboardProfileCard(
+                                profile = profile,
+                                rank = index + 1
+                            )
+                        }
+                    }
+                } else {
+                    if (uiState.following.isEmpty()) {
+                        item {
+                            SocialMessageCard(
+                                title = "No followed gardens yet",
+                                message = "Add a friend by Firebase UID to see their public garden and send nudges."
+                            )
+                        }
+                    } else {
+                        itemsIndexed(uiState.following, key = { _, friend -> friend.targetUid }) { index, friend ->
+                            FollowingCard(
+                                friend = friend,
+                                rank = index + 1,
+                                isNudgeInFlight = uiState.nudgingTargetUid == friend.targetUid,
+                                onNudge = { viewModel.sendNudge(friend) },
+                                onUnfollow = { viewModel.unfollow(friend) }
+                            )
+                        }
+                    }
+                }
+            } else {
+                item {
+                    SocialMessageCard(
+                        title = "Sign in with Google to connect with friends",
+                        message = "Leaderboard, Add Friend, and nudges use Firebase. The preview below is local demo data."
+                    )
+                }
+
+                val demoFriends = friendsForTab(uiState.friends, uiState.selectedTab)
+                if (demoFriends.isEmpty()) {
+                    item {
+                        SocialMessageCard(
+                            title = "No demo friends to show yet",
+                            message = "Mock garden friends will appear here once the local seed data is available."
+                        )
+                    }
+                } else {
+                    itemsIndexed(demoFriends, key = { _, friend -> friend.id }) { index, friend ->
+                        FriendCard(
+                            friend = friend,
+                            rank = index + 1,
+                            mode = uiState.selectedTab,
+                            onNudge = { viewModel.sendNudge(friend) }
                         )
                     }
                 }
             }
-
-            if (uiState.friends.isEmpty()) {
-                item {
-                    EmptySocialCard()
-                }
-            } else {
-                itemsIndexed(uiState.friends, key = { _, friend -> friend.id }) { index, friend ->
-                    FriendCard(
-                        friend = friend,
-                        rank = index + 1,
-                        mode = uiState.selectedTab,
-                        onNudge = { viewModel.sendNudge(friend) }
-                    )
-                }
-            }
         }
+    }
+
+    if (showAddFriendDialog) {
+        AddFriendDialog(
+            uid = friendUid,
+            onUidChange = { friendUid = it },
+            onDismiss = { showAddFriendDialog = false },
+            onAddFriend = {
+                viewModel.addFriendByUid(friendUid)
+                friendUid = ""
+                showAddFriendDialog = false
+            }
+        )
     }
 }
 
@@ -188,11 +268,473 @@ private fun SocialHeader() {
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
-                    text = "See who is on a streak, browse their plant progress, and send a quick nudge when someone needs momentum.",
+                    text = "See public streak summaries, browse friendly gardens, and send a quick nudge when someone needs momentum.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SocialTabs(
+    selectedTab: SocialTab,
+    onSelectTab: (SocialTab) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        SocialTab.entries.forEach { tab ->
+            FilterChip(
+                modifier = Modifier.weight(1f),
+                selected = selectedTab == tab,
+                onClick = { onSelectTab(tab) },
+                label = {
+                    Text(
+                        text = tab.label,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = selectedTab == tab,
+                    borderColor = Color.Transparent,
+                    selectedBorderColor = Color.Transparent
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun AddFriendCard(
+    onAddFriend: () -> Unit
+) {
+    Button(
+        onClick = onAddFriend,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(HabitSeedDimens.ButtonHeight),
+        shape = RoundedCornerShape(HabitSeedDimens.ButtonRadius),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.secondary,
+            contentColor = MaterialTheme.colorScheme.onSecondary
+        )
+    ) {
+        Icon(
+            imageVector = Icons.Filled.PersonAdd,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.size(8.dp))
+        Text("Add Friend", fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun LeaderboardActionRow(
+    onRefresh: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        shape = RoundedCornerShape(HabitSeedDimens.CardRadius)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "Global garden leaderboard",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Refresh whenever you want a fresh pull from Firebase.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                IconButton(
+                    onClick = onRefresh,
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Refresh,
+                        contentDescription = "Refresh leaderboard",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddFriendDialog(
+    uid: String,
+    onUidChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onAddFriend: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Add Friend",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "Enter a friend's Firebase UID. HabitSeed will only read their public garden profile.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = uid,
+                    onValueChange = onUidChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Firebase UID") },
+                    shape = RoundedCornerShape(18.dp)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onAddFriend) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun LoadingSocialCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(HabitSeedDimens.CardRadius),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(22.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 2.dp
+            )
+            Text(
+                text = "Loading social garden...",
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun SocialMessageCard(
+    title: String,
+    message: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(HabitSeedDimens.CardRadius),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Groups,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp)
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun LeaderboardProfileCard(
+    profile: PublicProfileDto,
+    rank: Int
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(HabitSeedDimens.CardRadius),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                RemoteAvatarBadge(
+                    name = profile.displayName,
+                    photoUrl = profile.photoUrl,
+                    rank = rank
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = profile.displayName.ifBlank { "Gardener" },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "#$rank on the global leaderboard",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                StreakPill(streak = profile.currentStreak)
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                PublicStat(
+                    label = "Weekly",
+                    value = "${profile.weeklyCompletionRate}%",
+                    modifier = Modifier.weight(1f)
+                )
+                PublicStat(
+                    label = "Plants",
+                    value = profile.fullyGrownPlants.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                PublicStat(
+                    label = "Done",
+                    value = profile.totalCompletions.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FollowingCard(
+    friend: FollowingDto,
+    rank: Int,
+    isNudgeInFlight: Boolean,
+    onNudge: () -> Unit,
+    onUnfollow: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(HabitSeedDimens.CardRadius),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                RemoteAvatarBadge(
+                    name = friend.displayNameSnapshot,
+                    photoUrl = friend.photoUrlSnapshot,
+                    rank = rank
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = friend.displayNameSnapshot.ifBlank { "Gardener" },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "UID ${shortUid(friend.targetUid)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = onNudge,
+                    enabled = !isNudgeInFlight,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(HabitSeedDimens.ButtonHeight),
+                    shape = RoundedCornerShape(HabitSeedDimens.ButtonRadius),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Bolt,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(
+                        text = if (isNudgeInFlight) "Sending" else "Nudge",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                OutlinedButton(
+                    onClick = onUnfollow,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(HabitSeedDimens.ButtonHeight),
+                    shape = RoundedCornerShape(HabitSeedDimens.ButtonRadius)
+                ) {
+                    Text("Unfollow", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PublicStat(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun RemoteAvatarBadge(
+    name: String,
+    photoUrl: String?,
+    rank: Int
+) {
+    Box {
+        Box(
+            modifier = Modifier
+                .size(58.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = initialsFor(name),
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold
+            )
+            if (!photoUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = photoUrl,
+                    contentDescription = "$name avatar",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary)
+                .padding(horizontal = 6.dp, vertical = 3.dp)
+        ) {
+            Text(
+                text = "#$rank",
+                color = MaterialTheme.colorScheme.onPrimary,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -221,8 +763,9 @@ private fun FriendCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                AvatarBadge(
+                RemoteAvatarBadge(
                     name = friend.name,
+                    photoUrl = null,
                     rank = rank
                 )
 
@@ -239,7 +782,7 @@ private fun FriendCard(
                     )
                     Text(
                         text = if (mode == SocialTab.Leaderboard) {
-                            "#$rank on the leaderboard"
+                            "#$rank on the preview leaderboard"
                         } else {
                             gardenStatus(friend)
                         },
@@ -301,59 +844,17 @@ private fun FriendCard(
                 ),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Bolt,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.size(6.dp))
-                    Text(
-                        text = "Nudge",
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Filled.Bolt,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.size(6.dp))
+                Text(
+                    text = "Nudge",
+                    fontWeight = FontWeight.Bold
+                )
             }
-        }
-    }
-}
-
-@Composable
-private fun AvatarBadge(
-    name: String,
-    rank: Int
-) {
-    Box {
-        Box(
-            modifier = Modifier
-                .size(58.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = name.take(1).uppercase(),
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold
-            )
-        }
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary)
-                .padding(horizontal = 6.dp, vertical = 3.dp)
-        ) {
-            Text(
-                text = "#$rank",
-                color = MaterialTheme.colorScheme.onPrimary,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold
-            )
         }
     }
 }
@@ -387,7 +888,7 @@ private fun StreakPill(streak: Int) {
 
 @Composable
 private fun FriendStatRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     text: String
 ) {
     Row(
@@ -410,39 +911,27 @@ private fun FriendStatRow(
     }
 }
 
-@Composable
-private fun EmptySocialCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(HabitSeedDimens.CardRadius),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Groups,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(28.dp)
-            )
-            Text(
-                text = "No friends to show yet",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Mock garden friends will appear here once the local seed data is available.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+private fun friendsForTab(
+    friends: List<FriendEntity>,
+    selectedTab: SocialTab
+): List<FriendEntity> {
+    return when (selectedTab) {
+        SocialTab.Leaderboard -> friends.sortedByDescending { it.currentStreak }
+        SocialTab.Gardens -> friends.sortedBy { it.name.lowercase() }
     }
+}
+
+private fun initialsFor(name: String): String {
+    return name
+        .split(" ")
+        .mapNotNull { part -> part.firstOrNull()?.uppercase() }
+        .take(2)
+        .joinToString("")
+        .ifBlank { "G" }
+}
+
+private fun shortUid(uid: String): String {
+    return if (uid.length <= 12) uid else "${uid.take(6)}...${uid.takeLast(4)}"
 }
 
 private fun gardenStatus(friend: FriendEntity): String {
@@ -458,16 +947,11 @@ private fun gardenStatus(friend: FriendEntity): String {
 private fun displayPlantName(assetName: String?): String {
     return when (assetName?.lowercase()) {
         "succulent", "plant_succulent" -> "Succulent"
-        "starter_fern" -> "Starter Fern"
-        "plant_starter_fern" -> "Starter Fern"
-        "desert_cactus" -> "Desert Cactus"
-        "plant_desert_cactus" -> "Desert Cactus"
-        "monstera", "monstera_deliciosa" -> "Monstera"
-        "plant_monstera" -> "Monstera"
-        "water_lily" -> "Water Lily"
-        "plant_water_lily" -> "Water Lily"
-        "golden_bonsai", "bonsai" -> "Golden Bonsai"
-        "plant_golden_bonsai" -> "Golden Bonsai"
+        "starter_fern", "plant_starter_fern" -> "Starter Fern"
+        "desert_cactus", "plant_desert_cactus" -> "Desert Cactus"
+        "monstera", "monstera_deliciosa", "plant_monstera" -> "Monstera"
+        "water_lily", "plant_water_lily" -> "Water Lily"
+        "golden_bonsai", "bonsai", "plant_golden_bonsai" -> "Golden Bonsai"
         else -> "Succulent"
     }
 }

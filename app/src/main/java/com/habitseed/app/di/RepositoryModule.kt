@@ -1,5 +1,9 @@
 package com.habitseed.app.di
 
+import com.habitseed.app.data.auth.AuthRepository
+import com.habitseed.app.data.auth.FirebaseAuthRepository
+import com.habitseed.app.data.social.FirestoreSocialRemoteDataSource
+import com.habitseed.app.data.social.SocialRemoteDataSource
 import com.habitseed.app.data.repository.HabitRepositoryImpl
 import com.habitseed.app.data.repository.ShopRepositoryImpl
 import com.habitseed.app.data.repository.SocialRepositoryImpl
@@ -41,4 +45,16 @@ abstract class RepositoryModule {
     abstract fun bindSocialRepository(
         socialRepositoryImpl: SocialRepositoryImpl
     ): SocialRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(
+        firebaseAuthRepository: FirebaseAuthRepository
+    ): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSocialRemoteDataSource(
+        firestoreSocialRemoteDataSource: FirestoreSocialRemoteDataSource
+    ): SocialRemoteDataSource
 }

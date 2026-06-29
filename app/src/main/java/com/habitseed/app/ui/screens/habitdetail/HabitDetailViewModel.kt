@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.habitseed.app.data.local.entity.HabitEntity
 import com.habitseed.app.data.local.entity.HabitLogEntity
+import com.habitseed.app.data.social.PublicProfileSyncReason
+import com.habitseed.app.data.social.SocialSyncRepository
 import com.habitseed.app.domain.repository.HabitRepository
 import com.habitseed.app.domain.util.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,6 +26,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class HabitDetailViewModel @Inject constructor(
     private val habitRepository: HabitRepository,
+    private val socialSyncRepository: SocialSyncRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -100,6 +103,9 @@ class HabitDetailViewModel @Inject constructor(
             if (wasCompleted) {
                 _habit.value = habitRepository.getHabitById(habitId)
                 _isCompletedToday.value = true
+                viewModelScope.launch {
+                    socialSyncRepository.syncPublicProfile(PublicProfileSyncReason.HABIT_COMPLETED)
+                }
                 _events.emit("Habit watered. +10 drops earned.")
             }
         }

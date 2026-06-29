@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.habitseed.app.ui.screens.login.LoginScreen
 import com.habitseed.app.ui.screens.onboarding.OnboardingScreen
+import com.habitseed.app.ui.screens.profile.EditProfileScreen
 import com.habitseed.app.ui.screens.profile.ProfileScreen
 import com.habitseed.app.ui.screens.social.SocialScreen
 import com.habitseed.app.ui.screens.shop.ShopScreen
@@ -35,6 +36,13 @@ fun HabitSeedNavGraph(
                 viewModel = viewModel,
                 onNavigateToOnboarding = {
                     navController.navigate(Screen.Onboarding.route) {
+                        popUpTo(Screen.Splash.route) {
+                            inclusive = true
+                        }
+                    }
+                },
+                onNavigateToLogin = {
+                    navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Splash.route) {
                             inclusive = true
                         }
@@ -109,6 +117,7 @@ fun HabitSeedNavGraph(
 
         composable(Screen.Profile.route) {
             ProfileScreen(
+                onEditProfile = { navController.navigate(Screen.EditProfile.route) },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(navController.graph.findStartDestination().id) {
@@ -117,6 +126,12 @@ fun HabitSeedNavGraph(
                         launchSingleTop = true
                     }
                 }
+            )
+        }
+
+        composable(Screen.EditProfile.route) {
+            EditProfileScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

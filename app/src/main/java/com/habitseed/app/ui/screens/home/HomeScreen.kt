@@ -91,7 +91,7 @@ fun HomeScreen(
         ) {
             item {
                 GreetingHeader(
-                    name = uiState.user?.name ?: "Alex",
+                    name = firstNameOrFallback(uiState.user?.name),
                     waterDrops = uiState.user?.waterDrops ?: 0
                 )
             }
@@ -456,6 +456,14 @@ private fun greetingForTime(): String {
         in 12..17 -> "Good Afternoon"
         else -> "Good Evening"
     }
+}
+
+private fun firstNameOrFallback(name: String?): String {
+    return name
+        ?.trim()
+        ?.split(" ")
+        ?.firstOrNull { it.isNotBlank() }
+        ?: "Gardener"
 }
 
 private fun encouragementText(progressPercent: Int, scheduledToday: Int): String {
