@@ -44,6 +44,13 @@ class AddHabitViewModel @Inject constructor(
         _selectedPlant.value = newPlant
     }
 
+    fun resetForm() {
+        _title.value = ""
+        _description.value = ""
+        _frequency.value = "Daily"
+        _selectedPlant.value = "Succulent"
+    }
+
     fun saveHabit(onSuccess: () -> Unit) {
         if (_title.value.isBlank()) return
         
@@ -56,6 +63,7 @@ class AddHabitViewModel @Inject constructor(
                 plantTypeId = _selectedPlant.value.lowercase()
             )
             habitRepository.insertHabit(newHabit)
+            resetForm()
             onSuccess()
         }
     }

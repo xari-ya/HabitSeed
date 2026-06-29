@@ -80,6 +80,7 @@ fun MainScreen() {
     ) { innerPadding ->
         HabitSeedNavGraph(
             navController = navController,
+            startDestination = Screen.Splash.route,
             modifier = Modifier.padding(innerPadding)
         )
     }
