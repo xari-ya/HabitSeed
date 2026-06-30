@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.habitseed.app.data.auth.AuthRepository
+import com.habitseed.app.data.backup.BackupRepository
+import com.habitseed.app.data.backup.RestoreResult
 import com.habitseed.app.data.social.PublicProfileSyncReason
 import com.habitseed.app.data.social.SocialSyncRepository
 import com.habitseed.app.domain.repository.UserRepository
@@ -21,7 +23,8 @@ import kotlinx.coroutines.launch
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-    private val socialSyncRepository: SocialSyncRepository
+    private val socialSyncRepository: SocialSyncRepository,
+    private val backupRepository: BackupRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -48,8 +51,19 @@ class LoginViewModel @Inject constructor(
                 return@launch
             }
 
+            val authUser = authResult.getOrThrow()
+            val restoreResult = backupRepository.restoreDataIfNeeded()
+            if (restoreResult is RestoreResult.Failed) {
+                _uiState.value = LoginUiState(
+                    authState = AuthState.Error,
+                    errorMessage = restoreResult.message
+                )
+                _events.emit(LoginEvent.ShowMessage(restoreResult.message))
+                return@launch
+            }
+
             runCatching {
-                userRepository.upsertGoogleUser(authResult.getOrThrow())
+                userRepository.upsertGoogleUser(authUser)
             }.onSuccess {
                 viewModelScope.launch {
                     socialSyncRepository.syncPublicProfile(PublicProfileSyncReason.SIGN_IN)

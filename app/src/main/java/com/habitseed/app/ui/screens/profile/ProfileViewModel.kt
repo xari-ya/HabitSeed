@@ -2,29 +2,32 @@ package com.habitseed.app.ui.screens.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.habitseed.app.data.auth.AuthRepository
 import com.habitseed.app.data.local.entity.UserEntity
 import com.habitseed.app.data.local.entity.UserSettingsEntity
 import com.habitseed.app.data.social.PublicProfileSyncReason
 import com.habitseed.app.data.social.SocialSyncRepository
+import com.habitseed.app.domain.auth.LogoutCoordinator
+import com.habitseed.app.domain.auth.LogoutResult
 import com.habitseed.app.domain.repository.HabitRepository
 import com.habitseed.app.domain.repository.UserRepository
 import com.habitseed.app.notifications.HabitReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class ProfileUiState(
     val user: UserEntity? = null,
-    val settings: UserSettingsEntity? = null
+    val settings: UserSettingsEntity? = null,
+    val isLoggingOut: Boolean = false
 )
 
 sealed interface ProfileEvent {
@@ -38,20 +41,23 @@ class ProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val habitRepository: HabitRepository,
     private val reminderScheduler: HabitReminderScheduler,
-    private val authRepository: AuthRepository,
-    private val socialSyncRepository: SocialSyncRepository
+    private val socialSyncRepository: SocialSyncRepository,
+    private val logoutCoordinator: LogoutCoordinator
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<ProfileEvent>()
     val events: SharedFlow<ProfileEvent> = _events.asSharedFlow()
+    private val isLoggingOut = MutableStateFlow(false)
 
     val uiState: StateFlow<ProfileUiState> = combine(
         userRepository.getUser(),
-        userRepository.getSettings()
-    ) { user, settings ->
+        userRepository.getSettings(),
+        isLoggingOut
+    ) { user, settings, loggingOut ->
         ProfileUiState(
             user = user,
-            settings = settings
+            settings = settings,
+            isLoggingOut = loggingOut
         )
     }.stateIn(
         scope = viewModelScope,
@@ -138,16 +144,24 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun logout() {
+        if (isLoggingOut.value) return
         viewModelScope.launch {
-            authRepository.signOut().onFailure { error ->
-                _events.emit(
-                    ProfileEvent.ShowMessage(
-                        error.message ?: "Sign out failed. Please try again."
-                    )
-                )
-                return@launch
+            isLoggingOut.value = true
+            when (val result = logoutCoordinator.logout()) {
+                LogoutResult.Success -> {
+                    _events.emit(ProfileEvent.Logout)
+                }
+
+                is LogoutResult.SuccessWithWarning -> {
+                    _events.emit(ProfileEvent.ShowMessage(result.message))
+                    _events.emit(ProfileEvent.Logout)
+                }
+
+                is LogoutResult.Cancelled -> {
+                    _events.emit(ProfileEvent.ShowMessage(result.message))
+                }
             }
-            _events.emit(ProfileEvent.Logout)
+            isLoggingOut.value = false
         }
     }
 

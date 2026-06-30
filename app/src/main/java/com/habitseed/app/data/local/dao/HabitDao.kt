@@ -14,6 +14,9 @@ interface HabitDao {
     @Query("SELECT * FROM habits WHERE userId = :userId AND isArchived = 0 ORDER BY createdAt DESC")
     fun getAllHabits(userId: String = "local_user"): Flow<List<HabitEntity>>
 
+    @Query("SELECT * FROM habits WHERE userId = :userId")
+    suspend fun getAllHabitsSync(userId: String = "local_user"): List<HabitEntity>
+
     @Query("SELECT * FROM habits WHERE id = :id")
     suspend fun getHabitById(id: Long): HabitEntity?
 

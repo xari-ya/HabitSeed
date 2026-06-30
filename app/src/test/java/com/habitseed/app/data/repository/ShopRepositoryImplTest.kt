@@ -147,8 +147,16 @@ private class FakePurchaseDao : PurchaseDao {
         return purchases.firstOrNull { it.userId == userId && it.shopItemId == shopItemId }
     }
 
+    override suspend fun getAllPurchases(userId: String): List<PurchaseEntity> {
+        return purchases.filter { it.userId == userId }
+    }
+
     override suspend fun getUnlockedPlant(userId: String, plantTypeId: String): UserUnlockedPlantEntity? {
         return unlockedPlants.firstOrNull { it.userId == userId && it.plantTypeId == plantTypeId }
+    }
+
+    override suspend fun getAllUnlockedPlants(userId: String): List<UserUnlockedPlantEntity> {
+        return unlockedPlants.filter { it.userId == userId }
     }
 
     override suspend fun insertPurchase(purchase: PurchaseEntity): Long {

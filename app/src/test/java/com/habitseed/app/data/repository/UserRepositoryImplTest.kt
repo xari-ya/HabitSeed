@@ -1,6 +1,7 @@
 package com.habitseed.app.data.repository
 
 import com.habitseed.app.data.auth.AuthUser
+import com.habitseed.app.data.local.SessionDataCleaner
 import com.habitseed.app.data.local.dao.UserDao
 import com.habitseed.app.data.local.dao.UserSettingsDao
 import com.habitseed.app.data.local.entity.UserEntity
@@ -25,7 +26,8 @@ class UserRepositoryImplTest {
         )
         val repository = UserRepositoryImpl(
             userDao = userDao,
-            userSettingsDao = FakeUserSettingsDao()
+            userSettingsDao = FakeUserSettingsDao(),
+            sessionDataCleaner = FakeSessionDataCleaner()
         )
 
         val updatedUser = repository.upsertGoogleUser(
@@ -56,7 +58,8 @@ class UserRepositoryImplTest {
         )
         val repository = UserRepositoryImpl(
             userDao = userDao,
-            userSettingsDao = FakeUserSettingsDao()
+            userSettingsDao = FakeUserSettingsDao(),
+            sessionDataCleaner = FakeSessionDataCleaner()
         )
 
         val updatedUser = repository.upsertGoogleUser(
@@ -72,6 +75,20 @@ class UserRepositoryImplTest {
         assertEquals("Kaveesha", updatedUser.name)
         assertEquals("john.doe@example.com", updatedUser.email)
         assertTrue(updatedUser.onboardingComplete)
+    }
+
+    @Test
+    fun clearAllUserData_delegatesToSessionCleaner() = runBlocking {
+        val cleaner = FakeSessionDataCleaner()
+        val repository = UserRepositoryImpl(
+            userDao = FakeUserDao(),
+            userSettingsDao = FakeUserSettingsDao(),
+            sessionDataCleaner = cleaner
+        )
+
+        repository.clearAllUserData()
+
+        assertTrue(cleaner.wasCleared)
     }
 }
 
@@ -131,7 +148,18 @@ private class FakeUserDao(initialUser: UserEntity? = null) : UserDao {
 private class FakeUserSettingsDao : UserSettingsDao {
     override fun getSettings(userId: String): Flow<UserSettingsEntity?> = flowOf(null)
 
+    override suspend fun getSettingsSync(userId: String): UserSettingsEntity? = null
+
     override suspend fun insertSettings(settings: UserSettingsEntity) = Unit
 
     override suspend fun updateSettings(settings: UserSettingsEntity) = Unit
+}
+
+private class FakeSessionDataCleaner : SessionDataCleaner {
+    var wasCleared: Boolean = false
+        private set
+
+    override suspend fun clearSessionData() {
+        wasCleared = true
+    }
 }

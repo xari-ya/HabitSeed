@@ -46,7 +46,6 @@ object DatabaseModule {
             AppDatabase.MIGRATION_6_7,
             AppDatabase.MIGRATION_7_8
         )
-        .fallbackToDestructiveMigration()
         .addCallback(object : RoomDatabase.Callback() {
             override fun onOpen(db: SupportSQLiteDatabase) {
                 super.onOpen(db)

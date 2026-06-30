@@ -15,4 +15,5 @@ interface UserRepository {
     suspend fun updateSettings(settings: UserSettingsEntity)
     suspend fun upsertGoogleUser(authUser: AuthUser): UserEntity
     suspend fun updateLastCloudSyncAt(timestamp: Long, publicProfileSyncHash: String)
+    suspend fun clearAllUserData()
 }

@@ -13,6 +13,9 @@ interface UserSettingsDao {
     @Query("SELECT * FROM user_settings WHERE userId = :userId LIMIT 1")
     fun getSettings(userId: String = "local_user"): Flow<UserSettingsEntity?>
 
+    @Query("SELECT * FROM user_settings WHERE userId = :userId LIMIT 1")
+    suspend fun getSettingsSync(userId: String = "local_user"): UserSettingsEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSettings(settings: UserSettingsEntity)
 

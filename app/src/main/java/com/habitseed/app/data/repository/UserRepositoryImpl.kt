@@ -6,12 +6,14 @@ import com.habitseed.app.data.auth.AuthUser
 import com.habitseed.app.data.local.entity.UserEntity
 import com.habitseed.app.data.local.entity.UserSettingsEntity
 import com.habitseed.app.domain.repository.UserRepository
+import com.habitseed.app.data.local.SessionDataCleaner
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class UserRepositoryImpl @Inject constructor(
     private val userDao: UserDao,
-    private val userSettingsDao: UserSettingsDao
+    private val userSettingsDao: UserSettingsDao,
+    private val sessionDataCleaner: SessionDataCleaner
 ) : UserRepository {
 
     override fun getUser(): Flow<UserEntity?> {
@@ -120,6 +122,10 @@ class UserRepositoryImpl @Inject constructor(
             syncedAt = timestamp,
             publicProfileSyncHash = publicProfileSyncHash
         )
+    }
+
+    override suspend fun clearAllUserData() {
+        sessionDataCleaner.clearSessionData()
     }
 
     private companion object {

@@ -187,6 +187,10 @@ private class FakeHabitDao(habits: List<HabitEntity>) : HabitDao {
         return flowOf(habits.values.filter { it.userId == userId && !it.isArchived })
     }
 
+    override suspend fun getAllHabitsSync(userId: String): List<HabitEntity> {
+        return habits.values.filter { it.userId == userId }
+    }
+
     override suspend fun getHabitById(id: Long): HabitEntity? = habits[id]
 
     override suspend fun insertHabit(habit: HabitEntity): Long {
@@ -223,6 +227,8 @@ private class FakeHabitLogDao(logs: List<HabitLogEntity>) : HabitLogDao {
     override fun getRecentLogsForHabit(habitId: Long, limit: Int): Flow<List<HabitLogEntity>> {
         return flowOf(logs.filter { it.habitId == habitId }.take(limit))
     }
+
+    override suspend fun getAllLogsSync(): List<HabitLogEntity> = logs
 
     override suspend fun insertLog(log: HabitLogEntity): Long {
         if (logs.any { it.habitId == log.habitId && it.dateKey == log.dateKey }) return -1L

@@ -3,6 +3,8 @@ package com.habitseed.app.ui.screens.splash
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.habitseed.app.data.auth.AuthRepository
+import com.habitseed.app.data.backup.BackupRepository
+import com.habitseed.app.data.backup.RestoreResult
 import com.habitseed.app.data.social.PublicProfileSyncReason
 import com.habitseed.app.data.social.SocialSyncRepository
 import com.habitseed.app.domain.repository.HabitRepository
@@ -25,7 +27,8 @@ class SplashViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val socialSyncRepository: SocialSyncRepository,
     private val reminderScheduler: HabitReminderScheduler,
-    private val notifier: HabitSeedNotifier
+    private val notifier: HabitSeedNotifier,
+    private val backupRepository: BackupRepository
 ) : ViewModel() {
 
     private val _destination = MutableStateFlow<SplashDestination?>(null)
@@ -36,25 +39,39 @@ class SplashViewModel @Inject constructor(
             val localUser = userRepository.getUser().first()
             syncReminderSchedules()
             val authUser = authRepository.currentUser()
+            var canEnterHome = authUser != null
+            var forceLogin = false
             if (authUser != null) {
                 val shouldMergeAuthUser = localUser == null ||
                     localUser.firebaseUid != authUser.uid ||
                     localUser.authProvider != "google"
                 if (shouldMergeAuthUser) {
-                    runCatching {
+                    val restoreResult = backupRepository.restoreDataIfNeeded()
+                    if (restoreResult is RestoreResult.Failed) {
+                        authRepository.signOut()
+                        canEnterHome = false
+                        forceLogin = true
+                    } else {
                         userRepository.upsertGoogleUser(authUser)
                     }
+                } else {
+                    viewModelScope.launch {
+                        backupRepository.backupData()
+                    }
                 }
-                viewModelScope.launch {
-                    socialSyncRepository.syncPublicProfile(PublicProfileSyncReason.APP_START)
-                }
-                viewModelScope.launch {
-                    notifyUnreadNudgesOnce()
+                if (canEnterHome) {
+                    viewModelScope.launch {
+                        socialSyncRepository.syncPublicProfile(PublicProfileSyncReason.APP_START)
+                    }
+                    viewModelScope.launch {
+                        notifyUnreadNudgesOnce()
+                    }
                 }
             }
             delay(SPLASH_DELAY_MS)
             _destination.value = when {
-                authUser != null -> SplashDestination.Home
+                canEnterHome -> SplashDestination.Home
+                forceLogin -> SplashDestination.Login
                 localUser?.onboardingComplete == true -> SplashDestination.Login
                 else -> SplashDestination.Onboarding
             }

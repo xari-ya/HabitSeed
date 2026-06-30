@@ -13,6 +13,9 @@ interface HabitLogDao {
     @Query("SELECT * FROM habit_logs WHERE habitId = :habitId ORDER BY completedAt DESC LIMIT :limit")
     fun getRecentLogsForHabit(habitId: Long, limit: Int): Flow<List<HabitLogEntity>>
 
+    @Query("SELECT * FROM habit_logs")
+    suspend fun getAllLogsSync(): List<HabitLogEntity>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertLog(log: HabitLogEntity): Long
 

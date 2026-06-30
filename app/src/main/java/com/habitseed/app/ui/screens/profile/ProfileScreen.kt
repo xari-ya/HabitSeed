@@ -202,9 +202,14 @@ fun ProfileScreen(
                         SettingRowAction(
                             icon = Icons.Filled.Lock,
                             title = "Log Out",
-                            subtitle = "Return to the login screen",
+                            subtitle = if (uiState.isLoggingOut) {
+                                "Backing up your data..."
+                            } else {
+                                "Return to the login screen"
+                            },
                             tint = MaterialTheme.colorScheme.error,
                             titleColor = MaterialTheme.colorScheme.error,
+                            enabled = !uiState.isLoggingOut,
                             onClick = {
                                 haptics.selection()
                                 viewModel.logout()
@@ -348,6 +353,7 @@ private data class SettingRowAction(
     val subtitle: String,
     val tint: Color = Color.Unspecified,
     val titleColor: Color = DarkSlate,
+    val enabled: Boolean = true,
     val onClick: () -> Unit
 )
 
@@ -412,7 +418,7 @@ private fun ActionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = row.onClick)
+            .clickable(enabled = row.enabled, onClick = row.onClick)
             .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp)

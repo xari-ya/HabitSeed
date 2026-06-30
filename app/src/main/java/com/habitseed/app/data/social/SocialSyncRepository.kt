@@ -7,6 +7,7 @@ import com.habitseed.app.data.local.dao.SocialCacheMetadataDao
 import com.habitseed.app.data.local.entity.CachedFollowingProfileEntity
 import com.habitseed.app.data.local.entity.CachedLeaderboardProfileEntity
 import com.habitseed.app.data.local.entity.SocialCacheMetadataEntity
+import com.habitseed.app.data.backup.BackupRepository
 import com.habitseed.app.data.social.dto.FollowingDto
 import com.habitseed.app.data.social.dto.NudgeDto
 import com.habitseed.app.data.social.dto.NudgeMessageTypes
@@ -39,7 +40,8 @@ class SocialSyncRepository @Inject constructor(
     private val remoteDataSource: SocialRemoteDataSource,
     private val cachedLeaderboardProfileDao: CachedLeaderboardProfileDao,
     private val cachedFollowingProfileDao: CachedFollowingProfileDao,
-    private val socialCacheMetadataDao: SocialCacheMetadataDao
+    private val socialCacheMetadataDao: SocialCacheMetadataDao,
+    private val backupRepository: BackupRepository
 ) {
     fun observeCachedLeaderboard() = cachedLeaderboardProfileDao.observeProfiles()
         .map { profiles -> profiles.map { it.toDto() } }
