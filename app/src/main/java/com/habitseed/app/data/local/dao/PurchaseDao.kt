@@ -12,6 +12,15 @@ interface PurchaseDao {
     @Query("SELECT * FROM purchases WHERE userId = :userId AND shopItemId = :shopItemId LIMIT 1")
     suspend fun getPurchase(userId: String, shopItemId: String): PurchaseEntity?
 
+    @Query(
+        """
+        SELECT * FROM user_unlocked_plants
+        WHERE userId = :userId AND plantTypeId = :plantTypeId
+        LIMIT 1
+        """
+    )
+    suspend fun getUnlockedPlant(userId: String, plantTypeId: String): UserUnlockedPlantEntity?
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertPurchase(purchase: PurchaseEntity): Long
 

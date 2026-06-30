@@ -56,7 +56,6 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun HabitSeedTheme(
     darkTheme: Boolean = false,
-    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme

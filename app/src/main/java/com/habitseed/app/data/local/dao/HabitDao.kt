@@ -30,7 +30,13 @@ interface HabitDao {
         """
         SELECT habits.*, 
                CASE WHEN habit_logs.id IS NOT NULL THEN 1 ELSE 0 END AS isCompletedToday,
-               habit_logs.completedAt AS completedAt
+               habit_logs.completedAt AS completedAt,
+               (
+                   SELECT MAX(completed_logs.dateKey)
+                   FROM habit_logs AS completed_logs
+                   WHERE completed_logs.habitId = habits.id
+                     AND completed_logs.status = 'COMPLETED'
+               ) AS lastCompletedDateKey
         FROM habits
         LEFT JOIN habit_logs 
             ON habits.id = habit_logs.habitId
@@ -44,4 +50,27 @@ interface HabitDao {
         userId: String = "local_user",
         dateKey: String
     ): Flow<List<TodayHabitStatus>>
+
+    @Query("SELECT COUNT(*) FROM habits WHERE userId = :userId AND isArchived = 0 AND :dateKey IS NOT NULL")
+    suspend fun countScheduledHabitsForDate(
+        userId: String,
+        dateKey: String
+    ): Int
+
+    @Query(
+        """
+        SELECT COUNT(*)
+        FROM habits
+        INNER JOIN habit_logs
+            ON habit_logs.habitId = habits.id
+           AND habit_logs.dateKey = :dateKey
+           AND habit_logs.status = 'COMPLETED'
+        WHERE habits.userId = :userId
+          AND habits.isArchived = 0
+        """
+    )
+    suspend fun countCompletedScheduledHabitsForDate(
+        userId: String,
+        dateKey: String
+    ): Int
 }

@@ -37,7 +37,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,7 +49,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.habitseed.app.data.local.entity.HabitLogEntity
+import com.habitseed.app.domain.gamification.PlantGrowthCalculator
 import com.habitseed.app.ui.components.PlantVisualizer
 import com.habitseed.app.ui.components.StatCard
 import com.habitseed.app.ui.components.SwipeToCompleteSlider
@@ -63,7 +64,7 @@ fun HabitDetailScreen(
     onNavigateBack: () -> Unit,
     viewModel: HabitDetailViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showCelebration by remember { mutableStateOf(false) }
 
@@ -163,8 +164,8 @@ fun HabitDetailScreen(
                             }
                         }
                         PlantVisualizer(
-                            plantType = habit.plantType,
-                            growthLevel = habit.plantGrowthLevel,
+                            plantTypeId = habit.plantType,
+                            growthStage = habit.plantGrowthLevel,
                             modifier = Modifier.size(240.dp)
                         )
                     }
@@ -188,8 +189,8 @@ fun HabitDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         StatCard(
-                            label = "Completion",
-                            value = "${uiState.completionRate}%",
+                            label = "Health",
+                            value = uiState.plantHealthInfo.label,
                             modifier = Modifier.weight(1f),
                             isHighlighted = true
                         )
@@ -199,11 +200,17 @@ fun HabitDetailScreen(
                             modifier = Modifier.weight(1f)
                         )
                         StatCard(
-                            label = "Total",
-                            value = "${habit.totalCompletions}",
+                            label = "Growth",
+                            value = PlantGrowthCalculator.completionsText(habit.totalCompletions),
                             modifier = Modifier.weight(1f)
                         )
                     }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HabitGrowthSummary(
+                        bestStreak = habit.bestStreak,
+                        completionRate = uiState.completionRate,
+                        totalCompletions = habit.totalCompletions
+                    )
                     Spacer(modifier = Modifier.height(18.dp))
                     Text(
                         text = "Recent watering",
@@ -231,6 +238,40 @@ fun HabitDetailScreen(
 }
 
 @Composable
+private fun HabitGrowthSummary(
+    bestStreak: Int,
+    completionRate: Int,
+    totalCompletions: Int
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = "Best streak: ${dayCountText(bestStreak)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "30-day consistency: $completionRate%",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Total watered: ${wateredCountText(totalCompletions)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
 private fun DailyLogStrip(logs: List<HabitLogEntity>) {
     if (logs.isEmpty()) {
         Surface(
@@ -251,7 +292,7 @@ private fun DailyLogStrip(logs: List<HabitLogEntity>) {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         contentPadding = PaddingValues(end = 4.dp)
     ) {
-        items(logs) { log ->
+        items(logs, key = { it.id }) { log ->
             val date = com.habitseed.app.domain.util.DateUtils.parseDateKey(log.dateKey)
             val dayLabel = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
             Surface(
@@ -322,7 +363,7 @@ private fun CelebrationBubble() {
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "+10 drops earned",
+                text = "+10 drops · +10 XP",
                 color = MaterialTheme.colorScheme.onSecondary,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold
@@ -332,11 +373,15 @@ private fun CelebrationBubble() {
 }
 
 private fun growthLabel(level: Int): String {
-    return when (level) {
-        0 -> "Seed"
-        1 -> "Sprout"
-        2 -> "Small Plant"
-        3 -> "Grown Plant"
-        else -> "Bloom"
-    }
+    return PlantGrowthCalculator.labelFor(level)
+}
+
+private fun dayCountText(days: Int): String {
+    val unit = if (days == 1) "day" else "days"
+    return "$days $unit"
+}
+
+private fun wateredCountText(count: Int): String {
+    val unit = if (count == 1) "time" else "times"
+    return "$count $unit"
 }

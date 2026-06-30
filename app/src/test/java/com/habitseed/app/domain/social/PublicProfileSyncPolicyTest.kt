@@ -95,9 +95,16 @@ class PublicProfileSyncPolicyTest {
             photoUrl = "https://example.com/a.png",
             currentStreak = 3,
             bestStreak = 6,
+            gardenLevel = 2,
+            gardenLevelTitle = "Sprout Keeper",
+            gardenLevelProgressPercent = 25,
             fullyGrownPlants = 1,
-            weeklyCompletionRate = 71,
+            totalPlants = 3,
+            highestPlantTypeId = "cactus",
+            highestPlantGrowthStage = 4,
+            weeklyCompletionRate = 71.0,
             totalCompletions = 12,
+            perfectDays = 1,
             lastActiveDateKey = "2026-06-29",
             updatedAt = 100L
         )
@@ -109,6 +116,10 @@ class PublicProfileSyncPolicyTest {
         assertNotEquals(
             PublicProfileSyncPolicy.syncHash(base),
             PublicProfileSyncPolicy.syncHash(base.copy(displayName = "New Name"))
+        )
+        assertNotEquals(
+            PublicProfileSyncPolicy.syncHash(base),
+            PublicProfileSyncPolicy.syncHash(base.copy(gardenLevel = 3))
         )
     }
 

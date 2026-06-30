@@ -10,17 +10,25 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface HabitLogDao {
-    @Query("SELECT * FROM habit_logs WHERE habitId = :habitId ORDER BY completedAt DESC")
-    fun getLogsForHabit(habitId: Long): Flow<List<HabitLogEntity>>
+    @Query("SELECT * FROM habit_logs WHERE habitId = :habitId ORDER BY completedAt DESC LIMIT :limit")
+    fun getRecentLogsForHabit(habitId: Long, limit: Int): Flow<List<HabitLogEntity>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertLog(log: HabitLogEntity): Long
-    
-    @Query("SELECT * FROM habit_logs WHERE completedAt >= :startOfDay AND completedAt <= :endOfDay")
-    fun getLogsForDateRange(startOfDay: Long, endOfDay: Long): Flow<List<HabitLogEntity>>
 
     @Query("SELECT * FROM habit_logs WHERE habitId = :habitId AND dateKey = :dateKey LIMIT 1")
     suspend fun getLogForHabitAndDate(habitId: Long, dateKey: String): HabitLogEntity?
+
+    @Query(
+        """
+        SELECT EXISTS(
+            SELECT 1
+            FROM habit_logs
+            WHERE habitId = :habitId AND dateKey = :dateKey AND status = 'COMPLETED'
+        )
+        """
+    )
+    suspend fun isHabitCompletedOnDate(habitId: Long, dateKey: String): Boolean
 
     @Query(
         """

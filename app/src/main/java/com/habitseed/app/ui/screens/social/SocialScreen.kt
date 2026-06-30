@@ -45,7 +45,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,21 +61,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.habitseed.app.data.local.entity.FriendEntity
 import com.habitseed.app.data.social.dto.FollowingDto
 import com.habitseed.app.data.social.dto.PublicProfileDto
-import com.habitseed.app.ui.components.plantAssetFor
+import com.habitseed.app.ui.components.PlantAssetMapper
 import com.habitseed.app.ui.theme.HabitSeedDimens
 
 @Composable
 fun SocialScreen(
     viewModel: SocialViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showAddFriendDialog by remember { mutableStateOf(false) }
     var friendUid by remember { mutableStateOf("") }
+    val demoFriends = remember(uiState.friends, uiState.selectedTab) {
+        friendsForTab(uiState.friends, uiState.selectedTab)
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { message ->
@@ -179,7 +182,6 @@ fun SocialScreen(
                     )
                 }
 
-                val demoFriends = friendsForTab(uiState.friends, uiState.selectedTab)
                 if (demoFriends.isEmpty()) {
                     item {
                         SocialMessageCard(
@@ -539,7 +541,7 @@ private fun LeaderboardProfileCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "#$rank on the global leaderboard",
+                        text = "Level ${profile.gardenLevel} · ${profile.gardenLevelTitle}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -549,11 +551,55 @@ private fun LeaderboardProfileCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(74.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(
+                            id = PlantAssetMapper.imageFor(
+                                plantTypeId = profile.highestPlantTypeId,
+                                growthStage = profile.highestPlantGrowthStage
+                            )
+                        ),
+                        contentDescription = "${profile.displayName}'s top plant",
+                        modifier = Modifier.size(58.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FriendStatRow(
+                        icon = Icons.Filled.LocalFlorist,
+                        text = displayPlantName(profile.highestPlantTypeId)
+                    )
+                    FriendStatRow(
+                        icon = Icons.Filled.WaterDrop,
+                        text = "${profile.gardenLevelProgressPercent}% to next level"
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 PublicStat(
+                    label = "Level",
+                    value = profile.gardenLevel.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                PublicStat(
                     label = "Weekly",
-                    value = "${profile.weeklyCompletionRate}%",
+                    value = "${profile.weeklyCompletionRate.toInt()}%",
                     modifier = Modifier.weight(1f)
                 )
                 PublicStat(
@@ -611,11 +657,52 @@ private fun FollowingCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "UID ${shortUid(friend.targetUid)}",
+                        text = "Level ${friend.gardenLevelSnapshot} · ${friend.gardenLevelTitleSnapshot}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
+                    )
+                }
+                StreakPill(streak = friend.currentStreakSnapshot)
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(74.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(
+                            id = PlantAssetMapper.imageFor(
+                                plantTypeId = friend.highestPlantTypeIdSnapshot,
+                                growthStage = friend.highestPlantGrowthStageSnapshot
+                            )
+                        ),
+                        contentDescription = "${friend.displayNameSnapshot}'s top plant",
+                        modifier = Modifier.size(58.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FriendStatRow(
+                        icon = Icons.Filled.LocalFlorist,
+                        text = displayPlantName(friend.highestPlantTypeIdSnapshot)
+                    )
+                    FriendStatRow(
+                        icon = Icons.Filled.WaterDrop,
+                        text = "${friend.weeklyCompletionRateSnapshot.toInt()}% weekly · ${friend.fullyGrownPlantsSnapshot} grown"
                     )
                 }
             }
@@ -809,7 +896,10 @@ private fun FriendCard(
                 ) {
                     Image(
                         painter = painterResource(
-                            id = plantAssetFor(friend.highestPlantAssetName ?: "succulent")
+                            id = PlantAssetMapper.imageFor(
+                                plantTypeId = friend.highestPlantAssetName,
+                                growthStage = 5
+                            )
                         ),
                         contentDescription = "${friend.name}'s top plant",
                         modifier = Modifier.size(58.dp),
@@ -945,14 +1035,19 @@ private fun gardenStatus(friend: FriendEntity): String {
 }
 
 private fun displayPlantName(assetName: String?): String {
-    return when (assetName?.lowercase()) {
-        "succulent", "plant_succulent" -> "Succulent"
+    return when (assetName?.lowercase()?.removePrefix("plant_")) {
+        "sunflower", "succulent" -> "Sunflower"
+        "cactus", "desert_cactus" -> "Cactus"
+        "lotus" -> "Lotus"
+        "water_lily" -> "Water Lily"
+        "bonsai", "small_bonsai", "golden_bonsai" -> "Bonsai"
+        "lavender" -> "Lavender"
+        "mushroom_garden" -> "Mushroom Garden"
+        "venus_flytrap" -> "Venus Flytrap"
+        "sakura_tree", "sakura_bonsai" -> "Sakura Tree"
         "starter_fern", "plant_starter_fern" -> "Starter Fern"
-        "desert_cactus", "plant_desert_cactus" -> "Desert Cactus"
-        "monstera", "monstera_deliciosa", "plant_monstera" -> "Monstera"
-        "water_lily", "plant_water_lily" -> "Water Lily"
-        "golden_bonsai", "bonsai", "plant_golden_bonsai" -> "Golden Bonsai"
-        else -> "Succulent"
+        "monstera", "monstera_deliciosa" -> "Monstera"
+        else -> "Sunflower"
     }
 }
 

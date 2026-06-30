@@ -10,6 +10,13 @@ data class CachedFollowingProfileEntity(
     val displayNameSnapshot: String,
     val photoUrlSnapshot: String?,
     val followedAt: Long,
+    val gardenLevelSnapshot: Int,
+    val gardenLevelTitleSnapshot: String,
+    val weeklyCompletionRateSnapshot: Double,
+    val fullyGrownPlantsSnapshot: Int,
+    val highestPlantTypeIdSnapshot: String?,
+    val highestPlantGrowthStageSnapshot: Int,
+    val currentStreakSnapshot: Int,
     val cachedAt: Long
 ) {
     fun toDto(): FollowingDto {
@@ -17,7 +24,14 @@ data class CachedFollowingProfileEntity(
             targetUid = targetUid,
             displayNameSnapshot = displayNameSnapshot,
             photoUrlSnapshot = photoUrlSnapshot,
-            followedAt = followedAt
+            followedAt = followedAt,
+            gardenLevelSnapshot = gardenLevelSnapshot,
+            gardenLevelTitleSnapshot = gardenLevelTitleSnapshot,
+            weeklyCompletionRateSnapshot = weeklyCompletionRateSnapshot,
+            fullyGrownPlantsSnapshot = fullyGrownPlantsSnapshot,
+            highestPlantTypeIdSnapshot = highestPlantTypeIdSnapshot,
+            highestPlantGrowthStageSnapshot = highestPlantGrowthStageSnapshot,
+            currentStreakSnapshot = currentStreakSnapshot
         )
     }
 
@@ -28,6 +42,13 @@ data class CachedFollowingProfileEntity(
                 displayNameSnapshot = following.displayNameSnapshot,
                 photoUrlSnapshot = following.photoUrlSnapshot,
                 followedAt = following.followedAt,
+                gardenLevelSnapshot = following.gardenLevelSnapshot,
+                gardenLevelTitleSnapshot = following.gardenLevelTitleSnapshot,
+                weeklyCompletionRateSnapshot = following.weeklyCompletionRateSnapshot,
+                fullyGrownPlantsSnapshot = following.fullyGrownPlantsSnapshot,
+                highestPlantTypeIdSnapshot = following.highestPlantTypeIdSnapshot,
+                highestPlantGrowthStageSnapshot = following.highestPlantGrowthStageSnapshot,
+                currentStreakSnapshot = following.currentStreakSnapshot,
                 cachedAt = cachedAt
             )
         }

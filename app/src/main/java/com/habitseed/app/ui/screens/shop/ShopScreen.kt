@@ -36,7 +36,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,9 +50,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.habitseed.app.data.local.model.ShopItemWithStatus
-import com.habitseed.app.ui.components.plantAssetFor
+import com.habitseed.app.ui.components.PlantAssetMapper
 import com.habitseed.app.ui.theme.HabitSeedDimens
 
 private enum class StoreFilter(val label: String) {
@@ -67,8 +68,8 @@ private enum class StoreFilter(val label: String) {
 fun ShopScreen(
     viewModel: ShopViewModel = hiltViewModel()
 ) {
-    val user by viewModel.user.collectAsState()
-    val shopItems by viewModel.shopItems.collectAsState()
+    val user by viewModel.user.collectAsStateWithLifecycle()
+    val shopItems by viewModel.shopItems.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedFilter by remember { mutableStateOf(StoreFilter.All) }
 
@@ -78,12 +79,14 @@ fun ShopScreen(
         }
     }
 
-    val filteredItems = shopItems.filter { item ->
-        when (selectedFilter) {
-            StoreFilter.All -> true
-            StoreFilter.Basic -> item.rarity.equals("basic", ignoreCase = true)
-            StoreFilter.Rare -> item.rarity.equals("rare", ignoreCase = true)
-            StoreFilter.Epic -> item.rarity.equals("epic", ignoreCase = true)
+    val filteredItems = remember(shopItems, selectedFilter) {
+        shopItems.filter { item ->
+            when (selectedFilter) {
+                StoreFilter.All -> true
+                StoreFilter.Basic -> item.rarity.equals("basic", ignoreCase = true)
+                StoreFilter.Rare -> item.rarity.equals("rare", ignoreCase = true)
+                StoreFilter.Epic -> item.rarity.equals("epic", ignoreCase = true)
+            }
         }
     }
 
@@ -98,14 +101,20 @@ fun ShopScreen(
                 .padding(paddingValues)
                 .padding(horizontal = HabitSeedDimens.ScreenPadding),
             contentPadding = PaddingValues(vertical = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+            item(
+                key = "store_header",
+                span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }
+            ) {
                 StoreHeader(waterDrops = user?.waterDrops ?: 0)
             }
 
-            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+            item(
+                key = "store_filters",
+                span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -138,7 +147,7 @@ fun ShopScreen(
                 }
             }
 
-            items(filteredItems) { item ->
+            items(filteredItems, key = { it.item.id }) { item ->
                 StorePlantTile(
                     item = item,
                     canAfford = (user?.waterDrops ?: 0) >= item.item.priceDrops,
@@ -233,7 +242,7 @@ private fun StorePlantTile(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(402.dp),
+            .height(304.dp),
         shape = RoundedCornerShape(HabitSeedDimens.CardRadius),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
@@ -241,7 +250,7 @@ private fun StorePlantTile(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(14.dp),
+                .padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
@@ -253,18 +262,18 @@ private fun StorePlantTile(
                     shape = RoundedCornerShape(999.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(10.dp)
+                                .size(9.dp)
                                 .background(rarityUi.dot, CircleShape)
                         )
                         Text(
                             text = rarityUi.label,
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.labelMedium,
                             color = rarityUi.text,
                             fontWeight = FontWeight.Bold
                         )
@@ -275,32 +284,44 @@ private fun StorePlantTile(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(148.dp)
-                    .clip(RoundedCornerShape(20.dp)),
+                    .height(108.dp)
+                    .clip(RoundedCornerShape(18.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = plantAssetFor(plantKey)),
+                    painter = painterResource(
+                        id = PlantAssetMapper.imageFor(
+                            plantTypeId = plantKey,
+                            growthStage = 5
+                        )
+                    ),
                     contentDescription = item.item.name,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(4.dp),
+                        .padding(2.dp),
                     contentScale = ContentScale.Fit
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = item.item.name,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.height(54.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = item.item.name,
+                    style = MaterialTheme.typography.titleMedium.copy(lineHeight = 24.sp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -309,7 +330,7 @@ private fun StorePlantTile(
                     imageVector = Icons.Filled.WaterDrop,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(17.dp)
                 )
                 Text(
                     text = item.item.priceDrops.toString(),
@@ -317,7 +338,7 @@ private fun StorePlantTile(
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
             if (item.isPurchased) {
                 Button(
@@ -325,7 +346,7 @@ private fun StorePlantTile(
                     enabled = false,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(HabitSeedDimens.ButtonHeight),
+                        .height(46.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -335,7 +356,9 @@ private fun StorePlantTile(
                     Text(
                         text = "Owned",
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             } else {
@@ -344,7 +367,7 @@ private fun StorePlantTile(
                     enabled = canAfford,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(HabitSeedDimens.ButtonHeight),
+                        .height(46.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -354,9 +377,12 @@ private fun StorePlantTile(
                     )
                 ) {
                     Text(
-                        text = "Unlock",
+                        text = if (canAfford) "Unlock" else "Need more drops",
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

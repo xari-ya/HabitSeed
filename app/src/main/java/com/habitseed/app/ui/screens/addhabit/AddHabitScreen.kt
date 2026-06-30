@@ -2,6 +2,7 @@ package com.habitseed.app.ui.screens.addhabit
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,21 +42,27 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.habitseed.app.ui.theme.ForestGreen
 import com.habitseed.app.ui.theme.HabitSeedDimens
 import com.habitseed.app.ui.theme.SunsetOrange
@@ -95,15 +102,24 @@ fun AddHabitScreen(
     onNavigateBack: () -> Unit,
     viewModel: AddHabitViewModel = hiltViewModel()
 ) {
-    val title by viewModel.title.collectAsState()
-    val description by viewModel.description.collectAsState()
-    val frequency by viewModel.frequency.collectAsState()
-    val selectedPlant by viewModel.selectedPlant.collectAsState()
-    val selectedIcon by viewModel.selectedIcon.collectAsState()
-    val selectedColor by viewModel.selectedColor.collectAsState()
-    val reminderEnabled by viewModel.reminderEnabled.collectAsState()
+    val title by viewModel.title.collectAsStateWithLifecycle()
+    val description by viewModel.description.collectAsStateWithLifecycle()
+    val frequency by viewModel.frequency.collectAsStateWithLifecycle()
+    val selectedPlant by viewModel.selectedPlant.collectAsStateWithLifecycle()
+    val selectedIcon by viewModel.selectedIcon.collectAsStateWithLifecycle()
+    val selectedColor by viewModel.selectedColor.collectAsStateWithLifecycle()
+    val reminderEnabled by viewModel.reminderEnabled.collectAsStateWithLifecycle()
+    val plantChoices by viewModel.plantChoices.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("New Seed") },
@@ -123,6 +139,7 @@ fun AddHabitScreen(
             description = description,
             frequency = frequency,
             selectedPlant = selectedPlant,
+            plantChoices = plantChoices,
             selectedIcon = selectedIcon,
             selectedColor = selectedColor,
             reminderEnabled = reminderEnabled,
@@ -147,13 +164,21 @@ fun AddHabitSheet(
     onDismiss: () -> Unit,
     viewModel: AddHabitViewModel = hiltViewModel()
 ) {
-    val title by viewModel.title.collectAsState()
-    val description by viewModel.description.collectAsState()
-    val frequency by viewModel.frequency.collectAsState()
-    val selectedPlant by viewModel.selectedPlant.collectAsState()
-    val selectedIcon by viewModel.selectedIcon.collectAsState()
-    val selectedColor by viewModel.selectedColor.collectAsState()
-    val reminderEnabled by viewModel.reminderEnabled.collectAsState()
+    val title by viewModel.title.collectAsStateWithLifecycle()
+    val description by viewModel.description.collectAsStateWithLifecycle()
+    val frequency by viewModel.frequency.collectAsStateWithLifecycle()
+    val selectedPlant by viewModel.selectedPlant.collectAsStateWithLifecycle()
+    val selectedIcon by viewModel.selectedIcon.collectAsStateWithLifecycle()
+    val selectedColor by viewModel.selectedColor.collectAsStateWithLifecycle()
+    val reminderEnabled by viewModel.reminderEnabled.collectAsStateWithLifecycle()
+    val plantChoices by viewModel.plantChoices.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -200,6 +225,7 @@ fun AddHabitSheet(
                 description = description,
                 frequency = frequency,
                 selectedPlant = selectedPlant,
+                plantChoices = plantChoices,
                 selectedIcon = selectedIcon,
                 selectedColor = selectedColor,
                 reminderEnabled = reminderEnabled,
@@ -212,6 +238,7 @@ fun AddHabitSheet(
                 onReminderChanged = viewModel::updateReminderEnabled,
                 onSave = { viewModel.saveHabit(onDismiss) }
             )
+            SnackbarHost(hostState = snackbarHostState)
         }
     }
 }
@@ -223,6 +250,7 @@ private fun AddHabitForm(
     description: String,
     frequency: String,
     selectedPlant: String,
+    plantChoices: List<PlantChoiceUi>,
     selectedIcon: String,
     selectedColor: String,
     reminderEnabled: Boolean,
@@ -263,12 +291,12 @@ private fun AddHabitForm(
             columns = GridCells.Fixed(3),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(192.dp),
+                .height(208.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             userScrollEnabled = false
         ) {
-            items(habitIconOptions) { option ->
+            items(habitIconOptions, key = { it.id }) { option ->
                 IconChoiceCard(
                     option = option,
                     selected = selectedIcon == option.id,
@@ -292,7 +320,11 @@ private fun AddHabitForm(
         }
 
         SectionLabel("Color mood")
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             habitColorOptions.forEach { option ->
                 ColorChoice(
                     option = option,
@@ -307,11 +339,40 @@ private fun AddHabitForm(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            listOf("Succulent", "Monstera", "Bonsai").forEach { plant ->
+            val visibleChoices = plantChoices.ifEmpty {
+                listOf(
+                    PlantChoiceUi(
+                        plantTypeId = "sunflower",
+                        name = "Sunflower",
+                        previewAsset = com.habitseed.app.R.drawable.sunflower_fully_grown,
+                        isUnlocked = true,
+                        priceDrops = null
+                    )
+                )
+            }
+            visibleChoices.forEach { plant ->
                 FilterChip(
-                    selected = selectedPlant == plant,
-                    onClick = { onSelectedPlantChanged(plant) },
-                    label = { Text(plant) }
+                    selected = selectedPlant == plant.plantTypeId,
+                    onClick = { onSelectedPlantChanged(plant.plantTypeId) },
+                    enabled = true,
+                    leadingIcon = {
+                        Image(
+                            painter = painterResource(id = plant.previewAsset),
+                            contentDescription = null,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = if (plant.isUnlocked) {
+                                plant.name
+                            } else {
+                                "${plant.name} · ${plant.priceDrops ?: 0}"
+                            },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 )
             }
         }
@@ -454,7 +515,9 @@ private fun ColorChoice(
             Text(
                 text = option.label,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

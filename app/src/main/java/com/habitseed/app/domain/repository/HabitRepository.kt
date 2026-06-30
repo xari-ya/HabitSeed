@@ -14,8 +14,18 @@ interface HabitRepository {
     suspend fun updateHabit(habit: HabitEntity)
     suspend fun archiveHabit(habitId: Long)
     
-    fun getLogsForHabit(habitId: Long): Flow<List<HabitLogEntity>>
-    suspend fun completeHabit(habitId: Long, dateKey: String = com.habitseed.app.domain.util.DateUtils.todayDateKey()): Boolean
-    fun getLogsForDateRange(startOfDay: Long, endOfDay: Long): Flow<List<HabitLogEntity>>
+    fun getRecentLogsForHabit(habitId: Long, limit: Int = 7): Flow<List<HabitLogEntity>>
+    suspend fun completeHabit(habitId: Long, dateKey: String = com.habitseed.app.domain.util.DateUtils.todayDateKey()): HabitCompletionResult
+    suspend fun isHabitCompletedOnDate(habitId: Long, dateKey: String): Boolean
     fun getStatsForLast30Days(): Flow<List<DailyCompletionStat>>
 }
+
+data class HabitCompletionResult(
+    val completed: Boolean,
+    val alreadyCompleted: Boolean = false,
+    val waterDropsAwarded: Int = 0,
+    val gardenXpAwarded: Int = 0,
+    val oldStage: Int = 0,
+    val newStage: Int = 0,
+    val messages: List<String> = emptyList()
+)

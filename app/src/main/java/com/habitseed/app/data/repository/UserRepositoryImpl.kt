@@ -31,7 +31,12 @@ class UserRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addWaterDrops(amount: Int) {
-        userDao.addWaterDrops("local_user", amount, System.currentTimeMillis())
+        val now = System.currentTimeMillis()
+        if (amount > 0) {
+            userDao.addWaterDropsAndLifetime("local_user", amount, now)
+        } else {
+            userDao.addWaterDrops("local_user", amount, now)
+        }
     }
 
     override suspend fun markOnboardingComplete() {
@@ -45,13 +50,16 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun upsertGoogleUser(authUser: AuthUser): UserEntity {
         val now = System.currentTimeMillis()
         val existingUser = userDao.getUserById("local_user")
+        val preservedExistingName = existingUser?.name
+            ?.trim()
+            ?.takeIf(::isUserDefinedName)
         val authDisplayName = authUser.displayName
             ?.trim()
             ?.takeIf { it.isNotBlank() }
-        val displayName = existingUser?.name
-            ?.trim()
-            ?.takeIf { it.isNotBlank() }
+        val emailDerivedName = authUser.email?.let(::deriveNameFromEmail)
+        val displayName = preservedExistingName
             ?: authDisplayName
+            ?: emailDerivedName
             ?: "Gardener"
         val avatarUrl = existingUser?.avatarUrl
             ?.trim()
@@ -82,10 +90,39 @@ class UserRepositoryImpl @Inject constructor(
         return updatedUser
     }
 
+    private fun isUserDefinedName(name: String): Boolean {
+        return name.isNotBlank() &&
+            placeholderNames.none { it.equals(name, ignoreCase = true) }
+    }
+
+    private fun deriveNameFromEmail(email: String): String? {
+        val localPart = email.substringBefore('@').trim()
+        if (localPart.isBlank()) return null
+
+        val segments = localPart
+            .split('.', '_', '-', '+')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+
+        val normalizedName = (if (segments.isNotEmpty()) segments else listOf(localPart))
+            .joinToString(" ") { segment ->
+                segment.lowercase().replaceFirstChar { char ->
+                    if (char.isLowerCase()) char.titlecase() else char.toString()
+                }
+            }
+            .trim()
+
+        return normalizedName.takeIf { it.isNotBlank() }
+    }
+
     override suspend fun updateLastCloudSyncAt(timestamp: Long, publicProfileSyncHash: String) {
         userDao.updateLastCloudSyncAt(
             syncedAt = timestamp,
             publicProfileSyncHash = publicProfileSyncHash
         )
+    }
+
+    private companion object {
+        val placeholderNames = setOf("Alex", "Gardener")
     }
 }

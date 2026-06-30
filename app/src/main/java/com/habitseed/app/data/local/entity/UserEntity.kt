@@ -22,6 +22,11 @@ data class UserEntity(
     val publicProfileSyncHash: String? = null,
     val joinedAt: Long = System.currentTimeMillis(),
     val waterDrops: Int = 0,
+    @ColumnInfo(defaultValue = "0")
+    val gardenXp: Int = 0,
+    @ColumnInfo(defaultValue = "0")
+    val lifetimeDropsEarned: Int = 0,
+    val lastPerfectDayBonusDateKey: String? = null,
     val currentStreak: Int = 0,
     val bestStreak: Int = 0,
     val selectedTheme: String = "forest",

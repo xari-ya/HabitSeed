@@ -37,7 +37,7 @@ data class HabitEntity(
     val frequencyType: String = "DAILY",
     val weeklyDaysMask: Int? = 127,
     val targetCount: Int = 1,
-    val plantTypeId: String = "succulent",
+    val plantTypeId: String = "sunflower",
     val currentStreak: Int = 0,
     val bestStreak: Int = 0,
     val totalCompletions: Int = 0,

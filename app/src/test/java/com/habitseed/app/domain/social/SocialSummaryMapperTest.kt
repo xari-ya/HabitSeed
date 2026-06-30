@@ -2,6 +2,7 @@ package com.habitseed.app.domain.social
 
 import com.habitseed.app.data.local.entity.HabitEntity
 import com.habitseed.app.data.local.entity.UserEntity
+import com.habitseed.app.data.social.dto.PublicProfileDto
 import com.habitseed.app.domain.model.DailyCompletionStat
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -15,6 +16,7 @@ class SocialSummaryMapperTest {
             email = "private@example.com",
             avatarUrl = "https://example.com/avatar.png",
             waterDrops = 999,
+            gardenXp = 260,
             currentStreak = 4,
             bestStreak = 12,
             createdAt = 100L
@@ -24,7 +26,7 @@ class SocialSummaryMapperTest {
                 name = "Private medication habit",
                 description = "Sensitive description",
                 totalCompletions = 22,
-                plantGrowthLevel = 4
+                plantGrowthLevel = 5
             ),
             HabitEntity(
                 name = "Private journal habit",
@@ -56,8 +58,13 @@ class SocialSummaryMapperTest {
         assertEquals("https://example.com/avatar.png", profile.photoUrl)
         assertEquals(4, profile.currentStreak)
         assertEquals(12, profile.bestStreak)
+        assertEquals(3, profile.gardenLevel)
+        assertEquals("Green Thumb", profile.gardenLevelTitle)
         assertEquals(1, profile.fullyGrownPlants)
-        assertEquals(71, profile.weeklyCompletionRate)
+        assertEquals(2, profile.totalPlants)
+        assertEquals("sunflower", profile.highestPlantTypeId)
+        assertEquals(5, profile.highestPlantGrowthStage)
+        assertEquals(71.4, profile.weeklyCompletionRate, 0.1)
         assertEquals(25, profile.totalCompletions)
         assertEquals("2026-06-29", profile.lastActiveDateKey)
         assertEquals(100L, profile.createdAt)
@@ -68,5 +75,12 @@ class SocialSummaryMapperTest {
         assertFalse(serializedShape.contains("Sensitive description"))
         assertFalse(serializedShape.contains("private@example.com"))
         assertFalse(serializedShape.contains("999"))
+
+        val publicFieldNames = PublicProfileDto::class.java.declaredFields.map { it.name }
+        assertFalse(publicFieldNames.contains("waterDrops"))
+        assertFalse(publicFieldNames.contains("gardenXp"))
+        assertFalse(publicFieldNames.contains("email"))
+        assertFalse(publicFieldNames.contains("habitTitle"))
+        assertFalse(publicFieldNames.contains("habitDescription"))
     }
 }

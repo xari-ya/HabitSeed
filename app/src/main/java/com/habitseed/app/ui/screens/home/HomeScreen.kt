@@ -39,7 +39,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,11 +48,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.habitseed.app.data.local.model.TodayHabitStatus
+import com.habitseed.app.domain.gamification.GardenLevelInfo
+import com.habitseed.app.domain.gamification.PlantGrowthCalculator
+import com.habitseed.app.domain.gamification.PlantHealthCalculator
+import com.habitseed.app.domain.util.DateUtils
 import com.habitseed.app.ui.components.PlantVisualizer
 import com.habitseed.app.ui.screens.addhabit.AddHabitSheet
 import com.habitseed.app.ui.theme.HabitSeedDimens
@@ -65,7 +71,7 @@ fun HomeScreen(
     onNavigateToHabitDetail: (Long) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddHabitSheet by remember { mutableStateOf(false) }
     val heroPlant = uiState.todayHabits.firstOrNull()?.habit
 
@@ -92,7 +98,8 @@ fun HomeScreen(
             item {
                 GreetingHeader(
                     name = firstNameOrFallback(uiState.user?.name),
-                    waterDrops = uiState.user?.waterDrops ?: 0
+                    waterDrops = uiState.user?.waterDrops ?: 0,
+                    avatarUrl = uiState.user?.avatarUrl
                 )
             }
 
@@ -101,8 +108,10 @@ fun HomeScreen(
                     progressPercent = uiState.progressPercent,
                     completedToday = uiState.completedToday,
                     scheduledToday = uiState.scheduledToday,
-                    plantType = heroPlant?.plantType ?: "succulent",
-                    growthLevel = heroPlant?.plantGrowthLevel ?: 0
+                    gardenStreak = uiState.gardenStreak,
+                    gardenLevelInfo = uiState.gardenLevelInfo,
+                    plantTypeId = heroPlant?.plantType ?: "sunflower",
+                    growthStage = heroPlant?.plantGrowthLevel ?: 0
                 )
             }
 
@@ -120,7 +129,7 @@ fun HomeScreen(
                     EmptyGardenCard()
                 }
             } else {
-                items(uiState.todayHabits) { habitStatus ->
+                items(uiState.todayHabits, key = { it.habit.id }) { habitStatus ->
                     TodayHabitRow(
                         habitStatus = habitStatus,
                         onClick = { onNavigateToHabitDetail(habitStatus.habit.id) }
@@ -140,7 +149,8 @@ fun HomeScreen(
 @Composable
 private fun GreetingHeader(
     name: String,
-    waterDrops: Int
+    waterDrops: Int,
+    avatarUrl: String?
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -176,6 +186,14 @@ private fun GreetingHeader(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
+                if (!avatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = avatarUrl,
+                        contentDescription = "$name avatar",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -192,8 +210,10 @@ private fun DashboardHeroCard(
     progressPercent: Int,
     completedToday: Int,
     scheduledToday: Int,
-    plantType: String,
-    growthLevel: Int
+    gardenStreak: Int,
+    gardenLevelInfo: GardenLevelInfo,
+    plantTypeId: String,
+    growthStage: Int
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -232,13 +252,20 @@ private fun DashboardHeroCard(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
+                    text = "Level ${gardenLevelInfo.level} · ${gardenLevelInfo.title}",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
                     text = encouragementText(progressPercent, scheduledToday),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 LinearProgressIndicator(
-                    progress = { (progressPercent / 100f).coerceIn(0f, 1f) },
+                    progress = { (gardenLevelInfo.progressPercent / 100f).coerceIn(0f, 1f) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(10.dp)
@@ -248,7 +275,20 @@ private fun DashboardHeroCard(
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
+                    text = gardenXpText(gardenLevelInfo),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
                     text = "$completedToday of $scheduledToday habits watered today",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Garden streak: ${dayCountText(gardenStreak)}",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -256,8 +296,8 @@ private fun DashboardHeroCard(
 
             Spacer(modifier = Modifier.width(12.dp))
             PlantVisualizer(
-                plantType = plantType,
-                growthLevel = growthLevel,
+                plantTypeId = plantTypeId,
+                growthStage = growthStage,
                 modifier = Modifier.size(148.dp)
             )
         }
@@ -278,8 +318,8 @@ private fun EmptyGardenCard() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             PlantVisualizer(
-                plantType = "succulent",
-                growthLevel = 0,
+                plantTypeId = "sunflower",
+                growthStage = 0,
                 modifier = Modifier.size(124.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -307,7 +347,15 @@ private fun TodayHabitRow(
     onClick: () -> Unit
 ) {
     val habit = habitStatus.habit
-    val habitColor = colorFromHex(habit.colorHex)
+    val plantHealth = PlantHealthCalculator.healthFor(
+        isCompletedToday = habitStatus.isCompletedToday,
+        lastCompletedDateKey = habitStatus.lastCompletedDateKey,
+        todayDateKey = DateUtils.todayDateKey()
+    )
+    val fallbackHabitColor = MaterialTheme.colorScheme.primary
+    val habitColor = remember(habit.colorHex, fallbackHabitColor) {
+        colorFromHex(habit.colorHex, fallbackHabitColor)
+    }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -347,7 +395,7 @@ private fun TodayHabitRow(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = habit.frequency,
+                    text = "${plantName(habit.plantType)} · ${PlantGrowthCalculator.labelFor(habit.plantGrowthLevel)} · ${plantHealth.label}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -444,10 +492,19 @@ private fun iconForHabit(iconName: String): ImageVector {
     }
 }
 
-@Composable
-private fun colorFromHex(colorHex: String): Color {
+private fun plantName(plantTypeId: String): String {
+    return plantTypeId
+        .split("_")
+        .joinToString(" ") { part ->
+            part.replaceFirstChar { char ->
+                if (char.isLowerCase()) char.titlecase() else char.toString()
+            }
+        }
+}
+
+private fun colorFromHex(colorHex: String, fallback: Color): Color {
     return runCatching { Color(android.graphics.Color.parseColor(colorHex)) }
-        .getOrDefault(MaterialTheme.colorScheme.primary)
+        .getOrDefault(fallback)
 }
 
 private fun greetingForTime(): String {
@@ -473,4 +530,15 @@ private fun encouragementText(progressPercent: Int, scheduledToday: Int): String
         progressPercent >= 50 -> "You're building steady momentum. A few more drops and you're there."
         else -> "A little progress today will help your garden grow stronger tomorrow."
     }
+}
+
+private fun gardenXpText(gardenLevelInfo: GardenLevelInfo): String {
+    return gardenLevelInfo.nextLevelXp?.let { nextLevelXp ->
+        "${gardenLevelInfo.currentXp} / $nextLevelXp XP"
+    } ?: "${gardenLevelInfo.currentXp} XP"
+}
+
+private fun dayCountText(days: Int): String {
+    val unit = if (days == 1) "day" else "days"
+    return "$days $unit"
 }

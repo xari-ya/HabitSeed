@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import com.habitseed.app.ui.navigation.MainScreen
 import com.habitseed.app.ui.theme.HabitSeedTheme
@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            val settings by viewModel.settings.collectAsState()
+            val settings by viewModel.settings.collectAsStateWithLifecycle()
             HabitSeedTheme(
                 darkTheme = settings?.darkModeEnabled == true
             ) {

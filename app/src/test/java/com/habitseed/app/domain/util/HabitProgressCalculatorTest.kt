@@ -40,8 +40,11 @@ class HabitProgressCalculatorTest {
 
     @Test
     fun plantGrowthLevel_updatesAfterCompletions() {
-        assertEquals(0, HabitProgressCalculator.calculateGrowthLevel(4))
-        assertEquals(1, HabitProgressCalculator.calculateGrowthLevel(5))
-        assertEquals(4, HabitProgressCalculator.calculateGrowthLevel(27))
+        assertEquals(0, HabitProgressCalculator.calculateGrowthLevel(0))
+        assertEquals(1, HabitProgressCalculator.calculateGrowthLevel(1))
+        assertEquals(2, HabitProgressCalculator.calculateGrowthLevel(3))
+        assertEquals(3, HabitProgressCalculator.calculateGrowthLevel(7))
+        assertEquals(4, HabitProgressCalculator.calculateGrowthLevel(14))
+        assertEquals(5, HabitProgressCalculator.calculateGrowthLevel(30))
     }
 }

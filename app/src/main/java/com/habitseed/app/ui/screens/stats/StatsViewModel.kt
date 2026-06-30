@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.habitseed.app.data.local.entity.HabitEntity
 import com.habitseed.app.data.local.entity.UserEntity
+import com.habitseed.app.domain.gamification.GardenLevelCalculator
+import com.habitseed.app.domain.gamification.GardenLevelInfo
 import com.habitseed.app.domain.model.DailyCompletionStat
 import com.habitseed.app.domain.repository.HabitRepository
 import com.habitseed.app.domain.repository.UserRepository
@@ -44,9 +46,15 @@ class StatsViewModel @Inject constructor(
 
     val uiState: StateFlow<StatsUiState> = combine(user, habits, dailyStats) { currentUser, allHabits, stats ->
         val currentWeek = currentWeekDates()
-        val plantsFullyGrown = allHabits.count { it.plantGrowthLevel >= 4 }
+        val plantsFullyGrown = allHabits.count { it.plantGrowthLevel >= 5 }
         val totalCompletions = stats.sumOf { it.completionCount }
         val averageRate = if (stats.isEmpty()) 0 else (totalCompletions / stats.size.toFloat()).toInt()
+        val activeDays = stats.count { it.completionCount > 0 }
+        val monthlyConsistencyPercent = if (stats.isEmpty()) {
+            0
+        } else {
+            ((activeDays * 100f) / stats.size).toInt()
+        }
 
         StatsUiState(
             user = currentUser,
@@ -54,7 +62,11 @@ class StatsViewModel @Inject constructor(
             dailyStats = stats,
             currentWeek = currentWeek,
             currentStreak = currentUser?.currentStreak ?: 0,
+            bestStreak = currentUser?.bestStreak ?: 0,
+            gardenLevelInfo = GardenLevelCalculator.levelForXp(currentUser?.gardenXp ?: 0),
             plantsFullyGrown = plantsFullyGrown,
+            lifetimeDropsEarned = currentUser?.lifetimeDropsEarned ?: 0,
+            monthlyConsistencyPercent = monthlyConsistencyPercent,
             averageDailyCompletions = averageRate
         )
     }.stateIn(
@@ -76,6 +88,10 @@ data class StatsUiState(
     val dailyStats: List<DailyCompletionStat> = emptyList(),
     val currentWeek: List<LocalDate> = emptyList(),
     val currentStreak: Int = 0,
+    val bestStreak: Int = 0,
+    val gardenLevelInfo: GardenLevelInfo = GardenLevelCalculator.levelForXp(0),
     val plantsFullyGrown: Int = 0,
+    val lifetimeDropsEarned: Int = 0,
+    val monthlyConsistencyPercent: Int = 0,
     val averageDailyCompletions: Int = 0
 )

@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.habitseed.app.domain.model.DailyCompletionStat
 import com.habitseed.app.ui.theme.HabitSeedDimens
 import java.time.LocalDate
@@ -46,7 +46,7 @@ import java.util.Locale
 fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -95,6 +95,24 @@ fun StatsScreen(
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     HarvestStatCard(
+                        label = "Garden Level",
+                        value = "Level ${uiState.gardenLevelInfo.level}",
+                        modifier = Modifier.weight(1f)
+                    )
+                    HarvestStatCard(
+                        label = "XP Progress",
+                        value = gardenXpText(uiState.gardenLevelInfo.currentXp, uiState.gardenLevelInfo.nextLevelXp),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    HarvestStatCard(
                         label = "Current Streak",
                         value = "${uiState.currentStreak} Days",
                         modifier = Modifier.weight(1f)
@@ -102,6 +120,42 @@ fun StatsScreen(
                     HarvestStatCard(
                         label = "Plants Fully Grown",
                         value = uiState.plantsFullyGrown.toString(),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    HarvestStatCard(
+                        label = "Best Streak",
+                        value = "${uiState.bestStreak} Days",
+                        modifier = Modifier.weight(1f)
+                    )
+                    HarvestStatCard(
+                        label = "30-Day Consistency",
+                        value = "${uiState.monthlyConsistencyPercent}%",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    HarvestStatCard(
+                        label = "Lifetime Drops",
+                        value = uiState.lifetimeDropsEarned.toString(),
+                        modifier = Modifier.weight(1f)
+                    )
+                    HarvestStatCard(
+                        label = "Garden Title",
+                        value = uiState.gardenLevelInfo.title,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -156,6 +210,10 @@ private fun WeekStrip(
             }
         }
     }
+}
+
+private fun gardenXpText(currentXp: Int, nextLevelXp: Int?): String {
+    return nextLevelXp?.let { "$currentXp / $it" } ?: "$currentXp XP"
 }
 
 @Composable
@@ -297,7 +355,7 @@ private fun HarvestStatCard(
             )
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.ExtraBold
             )

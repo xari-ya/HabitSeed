@@ -46,7 +46,7 @@ import com.habitseed.app.data.local.entity.UserUnlockedPlantEntity
         CachedFollowingProfileEntity::class,
         SocialCacheMetadataEntity::class
     ],
-    version = 4,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -118,6 +118,83 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                     """.trimIndent()
                 )
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE INDEX IF NOT EXISTS index_habit_logs_habitId_completedAt
+                    ON habit_logs(habitId, completedAt)
+                    """.trimIndent()
+                )
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE users ADD COLUMN gardenXp INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE users ADD COLUMN lifetimeDropsEarned INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE users ADD COLUMN lastPerfectDayBonusDateKey TEXT")
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS cached_leaderboard_profiles_new (
+                        uid TEXT NOT NULL PRIMARY KEY,
+                        displayName TEXT NOT NULL,
+                        photoUrl TEXT,
+                        currentStreak INTEGER NOT NULL,
+                        bestStreak INTEGER NOT NULL,
+                        gardenLevel INTEGER NOT NULL,
+                        gardenLevelTitle TEXT NOT NULL,
+                        gardenLevelProgressPercent INTEGER NOT NULL,
+                        fullyGrownPlants INTEGER NOT NULL,
+                        totalPlants INTEGER NOT NULL,
+                        highestPlantTypeId TEXT,
+                        highestPlantGrowthStage INTEGER NOT NULL,
+                        weeklyCompletionRate REAL NOT NULL,
+                        totalCompletions INTEGER NOT NULL,
+                        perfectDays INTEGER NOT NULL,
+                        lastActiveDateKey TEXT,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        rank INTEGER NOT NULL,
+                        cachedAt INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO cached_leaderboard_profiles_new (
+                        uid, displayName, photoUrl, currentStreak, bestStreak,
+                        gardenLevel, gardenLevelTitle, gardenLevelProgressPercent,
+                        fullyGrownPlants, totalPlants, highestPlantTypeId,
+                        highestPlantGrowthStage, weeklyCompletionRate, totalCompletions,
+                        perfectDays, lastActiveDateKey, createdAt, updatedAt, rank, cachedAt
+                    )
+                    SELECT
+                        uid, displayName, photoUrl, currentStreak, bestStreak,
+                        1, 'New Gardener', 0,
+                        fullyGrownPlants, 0, NULL,
+                        0, CAST(weeklyCompletionRate AS REAL), totalCompletions,
+                        0, lastActiveDateKey, createdAt, updatedAt, rank, cachedAt
+                    FROM cached_leaderboard_profiles
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE cached_leaderboard_profiles")
+                db.execSQL("ALTER TABLE cached_leaderboard_profiles_new RENAME TO cached_leaderboard_profiles")
+                db.execSQL("ALTER TABLE cached_following_profiles ADD COLUMN gardenLevelSnapshot INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE cached_following_profiles ADD COLUMN gardenLevelTitleSnapshot TEXT NOT NULL DEFAULT 'New Gardener'")
+                db.execSQL("ALTER TABLE cached_following_profiles ADD COLUMN weeklyCompletionRateSnapshot REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE cached_following_profiles ADD COLUMN fullyGrownPlantsSnapshot INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE cached_following_profiles ADD COLUMN highestPlantTypeIdSnapshot TEXT")
+                db.execSQL("ALTER TABLE cached_following_profiles ADD COLUMN highestPlantGrowthStageSnapshot INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE cached_following_profiles ADD COLUMN currentStreakSnapshot INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

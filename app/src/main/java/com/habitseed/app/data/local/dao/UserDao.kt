@@ -38,6 +38,45 @@ interface UserDao {
     @Query(
         """
         UPDATE users
+        SET gardenXp = gardenXp + :amount,
+            updatedAt = :updatedAt
+        WHERE id = :userId AND :amount >= 0
+        """
+    )
+    suspend fun addGardenXp(userId: String, amount: Int, updatedAt: Long): Int
+
+    @Query(
+        """
+        UPDATE users
+        SET waterDrops = waterDrops + :drops,
+            lifetimeDropsEarned = lifetimeDropsEarned + :drops,
+            updatedAt = :updatedAt
+        WHERE id = :userId AND :drops >= 0
+        """
+    )
+    suspend fun addWaterDropsAndLifetime(
+        userId: String,
+        drops: Int,
+        updatedAt: Long
+    ): Int
+
+    @Query(
+        """
+        UPDATE users
+        SET lastPerfectDayBonusDateKey = :dateKey,
+            updatedAt = :updatedAt
+        WHERE id = :userId
+        """
+    )
+    suspend fun updateLastPerfectDayBonusDate(
+        userId: String,
+        dateKey: String,
+        updatedAt: Long
+    ): Int
+
+    @Query(
+        """
+        UPDATE users
         SET onboardingComplete = 1,
             updatedAt = :updatedAt
         WHERE id = :userId

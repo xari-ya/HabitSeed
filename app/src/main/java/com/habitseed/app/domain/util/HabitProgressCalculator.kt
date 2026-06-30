@@ -1,6 +1,6 @@
 package com.habitseed.app.domain.util
 
-import kotlin.math.min
+import com.habitseed.app.domain.gamification.PlantGrowthCalculator
 
 object HabitProgressCalculator {
     fun calculateNextStreak(
@@ -18,6 +18,6 @@ object HabitProgressCalculator {
     }
 
     fun calculateGrowthLevel(totalCompletions: Int): Int {
-        return min(4, totalCompletions / 5)
+        return PlantGrowthCalculator.stageFor(totalCompletions)
     }
 }

@@ -25,10 +25,10 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Vibration
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,7 +40,6 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -56,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.habitseed.app.ui.theme.DarkSlate
 import com.habitseed.app.ui.theme.HabitSeedDimens
@@ -70,7 +70,7 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
 
@@ -356,7 +356,7 @@ private fun SettingsGroupCard(
             rows.forEachIndexed { index, row ->
                 ActionRow(row = row)
                 if (index != rows.lastIndex) {
-                    Divider(
+                    HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 18.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant
                     )
@@ -508,7 +508,7 @@ private fun AppSettingsCard(
                 checked = notificationsEnabled,
                 onCheckedChange = onToggleNotifications
             )
-            Divider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
             ToggleRow(
                 icon = Icons.Filled.DarkMode,
                 title = "Dark Mode",
@@ -516,7 +516,7 @@ private fun AppSettingsCard(
                 checked = darkModeEnabled,
                 onCheckedChange = onToggleDarkMode
             )
-            Divider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
             ActionRow(
                 row = SettingRowAction(
                     icon = Icons.Filled.Schedule,
@@ -525,15 +525,15 @@ private fun AppSettingsCard(
                     onClick = onReminderClick
                 )
             )
-            Divider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
             ToggleRow(
-                icon = Icons.Filled.VolumeUp,
+                icon = Icons.AutoMirrored.Filled.VolumeUp,
                 title = "Sound",
                 subtitle = "Audio feedback for actions",
                 checked = soundEnabled,
                 onCheckedChange = onToggleSound
             )
-            Divider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.surfaceVariant)
             ToggleRow(
                 icon = Icons.Filled.Vibration,
                 title = "Haptics",

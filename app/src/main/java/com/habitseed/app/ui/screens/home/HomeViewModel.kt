@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.habitseed.app.data.local.entity.UserEntity
 import com.habitseed.app.data.local.model.TodayHabitStatus
+import com.habitseed.app.domain.gamification.GardenLevelCalculator
+import com.habitseed.app.domain.gamification.GardenLevelInfo
 import com.habitseed.app.domain.repository.HabitRepository
 import com.habitseed.app.domain.repository.UserRepository
 import com.habitseed.app.domain.util.DateUtils
@@ -43,6 +45,8 @@ class HomeViewModel @Inject constructor(
             todayHabits = habits,
             completedToday = completedCount,
             scheduledToday = totalCount,
+            gardenStreak = currentUser?.currentStreak ?: 0,
+            gardenLevelInfo = GardenLevelCalculator.levelForXp(currentUser?.gardenXp ?: 0),
             progressPercent = if (totalCount == 0) 0 else (completedCount * 100) / totalCount
         )
     }.stateIn(
@@ -57,5 +61,7 @@ data class HomeUiState(
     val todayHabits: List<TodayHabitStatus> = emptyList(),
     val completedToday: Int = 0,
     val scheduledToday: Int = 0,
+    val gardenStreak: Int = 0,
+    val gardenLevelInfo: GardenLevelInfo = GardenLevelCalculator.levelForXp(0),
     val progressPercent: Int = 0
 )

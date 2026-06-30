@@ -7,6 +7,8 @@ import com.habitseed.app.data.local.entity.HabitEntity
 import com.habitseed.app.data.local.entity.HabitLogEntity
 import com.habitseed.app.data.social.PublicProfileSyncReason
 import com.habitseed.app.data.social.SocialSyncRepository
+import com.habitseed.app.domain.gamification.PlantHealthCalculator
+import com.habitseed.app.domain.gamification.PlantHealthInfo
 import com.habitseed.app.domain.repository.HabitRepository
 import com.habitseed.app.domain.util.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,8 +20,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -40,10 +40,7 @@ class HabitDetailViewModel @Inject constructor(
     val habit: StateFlow<HabitEntity?> = _habit.asStateFlow()
     val isCompletedToday: StateFlow<Boolean> = _isCompletedToday.asStateFlow()
 
-    private val recentLogs = habitRepository.getLogsForHabit(habitId)
-        .map { logs ->
-            logs.sortedByDescending { it.completedAt ?: 0L }.take(7)
-        }
+    private val recentLogs = habitRepository.getRecentLogsForHabit(habitId, limit = 30)
         .stateIn(
             scope = viewModelScope,
             started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
@@ -55,6 +52,10 @@ class HabitDetailViewModel @Inject constructor(
         isCompletedToday,
         recentLogs
     ) { currentHabit, completedToday, logs ->
+        val todayDateKey = DateUtils.todayDateKey()
+        val lastCompletedDateKey = logs
+            .firstOrNull { it.isCompleted }
+            ?.dateKey
         val completionRate = if (logs.isEmpty()) {
             0
         } else {
@@ -63,6 +64,11 @@ class HabitDetailViewModel @Inject constructor(
         HabitDetailUiState(
             habit = currentHabit,
             isCompletedToday = completedToday,
+            plantHealthInfo = PlantHealthCalculator.healthFor(
+                isCompletedToday = completedToday,
+                lastCompletedDateKey = lastCompletedDateKey,
+                todayDateKey = todayDateKey
+            ),
             recentLogs = logs,
             completionRate = completionRate
         )
@@ -85,10 +91,10 @@ class HabitDetailViewModel @Inject constructor(
 
     private fun checkCompletionStatus() {
         viewModelScope.launch {
-            val startOfDay = DateUtils.getStartOfDay(System.currentTimeMillis())
-            val endOfDay = DateUtils.getEndOfDay(System.currentTimeMillis())
-            val logs = habitRepository.getLogsForDateRange(startOfDay, endOfDay).firstOrNull()
-            _isCompletedToday.value = logs?.any { it.habitId == habitId && it.isCompleted } == true
+            _isCompletedToday.value = habitRepository.isHabitCompletedOnDate(
+                habitId = habitId,
+                dateKey = DateUtils.todayDateKey()
+            )
         }
     }
 
@@ -96,17 +102,19 @@ class HabitDetailViewModel @Inject constructor(
         if (_isCompletedToday.value) return
 
         viewModelScope.launch {
-            val wasCompleted = habitRepository.completeHabit(
+            val result = habitRepository.completeHabit(
                 habitId = habitId,
                 dateKey = DateUtils.todayDateKey()
             )
-            if (wasCompleted) {
+            if (result.completed) {
                 _habit.value = habitRepository.getHabitById(habitId)
                 _isCompletedToday.value = true
                 viewModelScope.launch {
                     socialSyncRepository.syncPublicProfile(PublicProfileSyncReason.HABIT_COMPLETED)
                 }
-                _events.emit("Habit watered. +10 drops earned.")
+                result.messages.forEach { message ->
+                    _events.emit(message)
+                }
             }
         }
     }
@@ -115,6 +123,11 @@ class HabitDetailViewModel @Inject constructor(
 data class HabitDetailUiState(
     val habit: HabitEntity? = null,
     val isCompletedToday: Boolean = false,
+    val plantHealthInfo: PlantHealthInfo = PlantHealthCalculator.healthFor(
+        isCompletedToday = false,
+        lastCompletedDateKey = null,
+        todayDateKey = DateUtils.todayDateKey()
+    ),
     val recentLogs: List<HabitLogEntity> = emptyList(),
     val completionRate: Int = 0
 )

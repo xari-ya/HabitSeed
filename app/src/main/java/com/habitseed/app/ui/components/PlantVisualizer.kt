@@ -17,12 +17,15 @@ import kotlin.math.roundToInt
 
 @Composable
 fun PlantVisualizer(
-    plantType: String,
-    growthLevel: Int,
+    plantTypeId: String?,
+    growthStage: Int,
     modifier: Modifier = Modifier
 ) {
-    val normalizedGrowthLevel = growthLevel.coerceAtLeast(0)
-    val imageRes = plantAssetFor(plantType)
+    val normalizedGrowthStage = growthStage.coerceIn(0, 5)
+    val imageRes = PlantAssetMapper.imageFor(
+        plantTypeId = plantTypeId,
+        growthStage = normalizedGrowthStage
+    )
 
     val infiniteTransition = rememberInfiniteTransition(label = "float_animation")
     val floatOffset by infiniteTransition.animateFloat(
@@ -41,7 +44,7 @@ fun PlantVisualizer(
     ) {
         Image(
             painter = painterResource(id = imageRes),
-            contentDescription = "$plantType plant illustration at growth level $normalizedGrowthLevel",
+            contentDescription = "${plantTypeId ?: "sunflower"} plant illustration at growth stage $normalizedGrowthStage",
             modifier = Modifier
                 .fillMaxSize()
                 .offset { IntOffset(0, floatOffset.roundToInt()) }

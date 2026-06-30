@@ -4,16 +4,25 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.habitseed.app.data.local.entity.HabitEntity
 import com.habitseed.app.domain.repository.HabitRepository
+import com.habitseed.app.domain.repository.ShopRepository
+import com.habitseed.app.ui.components.PlantAssetMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 @HiltViewModel
 class AddHabitViewModel @Inject constructor(
-    private val habitRepository: HabitRepository
+    private val habitRepository: HabitRepository,
+    shopRepository: ShopRepository
 ) : ViewModel() {
 
     private val _title = MutableStateFlow("")
@@ -25,8 +34,32 @@ class AddHabitViewModel @Inject constructor(
     private val _frequency = MutableStateFlow("Daily")
     val frequency: StateFlow<String> = _frequency.asStateFlow()
 
-    private val _selectedPlant = MutableStateFlow("Succulent")
+    private val _selectedPlant = MutableStateFlow("sunflower")
     val selectedPlant: StateFlow<String> = _selectedPlant.asStateFlow()
+
+    val plantChoices: StateFlow<List<PlantChoiceUi>> = shopRepository.getAllShopItems()
+        .map { items ->
+            items
+                .filter { it.item.itemType == "PLANT" && it.item.linkedPlantTypeId != null }
+                .map { item ->
+                    val plantTypeId = item.item.linkedPlantTypeId ?: "sunflower"
+                    PlantChoiceUi(
+                        plantTypeId = plantTypeId,
+                        name = item.item.name,
+                        previewAsset = PlantAssetMapper.imageFor(plantTypeId, 5),
+                        isUnlocked = item.isPurchased,
+                        priceDrops = item.item.priceDrops.takeUnless { item.isPurchased }
+                    )
+                }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    private val _messages = MutableSharedFlow<String>()
+    val messages: SharedFlow<String> = _messages.asSharedFlow()
 
     private val _selectedIcon = MutableStateFlow("sprout")
     val selectedIcon: StateFlow<String> = _selectedIcon.asStateFlow()
@@ -50,7 +83,14 @@ class AddHabitViewModel @Inject constructor(
     }
 
     fun updateSelectedPlant(newPlant: String) {
-        _selectedPlant.value = newPlant
+        val choice = plantChoices.value.firstOrNull { it.plantTypeId == newPlant }
+        if (choice == null || choice.isUnlocked) {
+            _selectedPlant.value = newPlant
+        } else {
+            viewModelScope.launch {
+                _messages.emit("Unlock this plant in the Seed Store.")
+            }
+        }
     }
 
     fun updateSelectedIcon(iconName: String) {
@@ -69,7 +109,7 @@ class AddHabitViewModel @Inject constructor(
         _title.value = ""
         _description.value = ""
         _frequency.value = "Daily"
-        _selectedPlant.value = "Succulent"
+        _selectedPlant.value = "sunflower"
         _selectedIcon.value = "sprout"
         _selectedColor.value = "#2D6A4F"
         _reminderEnabled.value = false
@@ -91,19 +131,19 @@ class AddHabitViewModel @Inject constructor(
                     "WEEKLY" -> 62
                     else -> null
                 },
-                plantTypeId = plantTypeIdFor(_selectedPlant.value)
+                plantTypeId = _selectedPlant.value
             )
             habitRepository.insertHabit(newHabit)
             resetForm()
             onSuccess()
         }
     }
-
-    private fun plantTypeIdFor(label: String): String {
-        return when (label.lowercase()) {
-            "monstera" -> "monstera_deliciosa"
-            "bonsai" -> "golden_bonsai"
-            else -> "succulent"
-        }
-    }
 }
+
+data class PlantChoiceUi(
+    val plantTypeId: String,
+    val name: String,
+    val previewAsset: Int,
+    val isUnlocked: Boolean,
+    val priceDrops: Int?
+)

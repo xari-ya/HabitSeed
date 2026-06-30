@@ -159,7 +159,14 @@ class SocialSyncRepository @Inject constructor(
                 targetUid = targetProfile.uid,
                 displayNameSnapshot = targetProfile.displayName.ifBlank { "Gardener" },
                 photoUrlSnapshot = targetProfile.photoUrl,
-                followedAt = now
+                followedAt = now,
+                gardenLevelSnapshot = targetProfile.gardenLevel,
+                gardenLevelTitleSnapshot = targetProfile.gardenLevelTitle,
+                weeklyCompletionRateSnapshot = targetProfile.weeklyCompletionRate,
+                fullyGrownPlantsSnapshot = targetProfile.fullyGrownPlants,
+                highestPlantTypeIdSnapshot = targetProfile.highestPlantTypeId,
+                highestPlantGrowthStageSnapshot = targetProfile.highestPlantGrowthStage,
+                currentStreakSnapshot = targetProfile.currentStreak
             )
             remoteDataSource.followUser(currentUid = currentUid, following = following)
             cachedFollowingProfileDao.insertProfile(

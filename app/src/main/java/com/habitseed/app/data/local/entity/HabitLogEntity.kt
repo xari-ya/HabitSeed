@@ -17,6 +17,7 @@ import androidx.room.PrimaryKey
     ],
     indices = [
         Index(value = ["habitId", "dateKey"], unique = true),
+        Index(value = ["habitId", "completedAt"]),
         Index("dateKey")
     ]
 )

@@ -35,41 +35,72 @@ class ShopRepositoryImpl @Inject constructor(
     override suspend fun purchaseShopItem(userId: String, shopItemId: String): Boolean {
         return try {
             db.withTransaction {
-                val user = userDao.getUserById(userId) ?: return@withTransaction false
-                val item = shopItemDao.getShopItemById(shopItemId) ?: return@withTransaction false
-                if (!item.isActive) return@withTransaction false
-                if (purchaseDao.getPurchase(userId, shopItemId) != null) return@withTransaction false
-                if (user.waterDrops < item.priceDrops) return@withTransaction false
-
-                val now = System.currentTimeMillis()
-                val updatedRows = userDao.addWaterDrops(userId, -item.priceDrops, now)
-                if (updatedRows == 0) return@withTransaction false
-
-                val purchaseId = purchaseDao.insertPurchase(
-                    PurchaseEntity(
-                        userId = userId,
-                        shopItemId = shopItemId,
-                        pricePaidDrops = item.priceDrops,
-                        purchasedAt = now
-                    )
-                )
-                if (purchaseId == -1L) throw PurchaseRollbackException()
-
-                item.linkedPlantTypeId?.let { plantTypeId ->
-                    purchaseDao.insertUnlockedPlant(
-                        UserUnlockedPlantEntity(
-                            userId = userId,
-                            plantTypeId = plantTypeId,
-                            unlockedAt = now
-                        )
-                    )
-                }
-                true
+                purchaseShopItemInTransaction(userId = userId, shopItemId = shopItemId)
             }
         } catch (_: PurchaseRollbackException) {
             false
         }
     }
+
+    internal suspend fun purchaseShopItemInTransaction(
+        userId: String,
+        shopItemId: String,
+        now: Long = System.currentTimeMillis()
+    ): Boolean {
+        return runShopPurchaseTransaction(
+            userId = userId,
+            shopItemId = shopItemId,
+            now = now,
+            shopItemDao = shopItemDao,
+            purchaseDao = purchaseDao,
+            userDao = userDao
+        )
+    }
 }
 
 private class PurchaseRollbackException : RuntimeException()
+
+internal suspend fun runShopPurchaseTransaction(
+    userId: String,
+    shopItemId: String,
+    now: Long,
+    shopItemDao: ShopItemDao,
+    purchaseDao: PurchaseDao,
+    userDao: UserDao
+): Boolean {
+    val user = userDao.getUserById(userId) ?: return false
+    val item = shopItemDao.getShopItemById(shopItemId) ?: return false
+    if (!item.isActive) return false
+    if (purchaseDao.getPurchase(userId, shopItemId) != null) return false
+    if (
+        item.linkedPlantTypeId != null &&
+        purchaseDao.getUnlockedPlant(userId, item.linkedPlantTypeId) != null
+    ) {
+        return false
+    }
+    if (user.waterDrops < item.priceDrops) return false
+
+    val updatedRows = userDao.addWaterDrops(userId, -item.priceDrops, now)
+    if (updatedRows == 0) return false
+
+    val purchaseId = purchaseDao.insertPurchase(
+        PurchaseEntity(
+            userId = userId,
+            shopItemId = shopItemId,
+            pricePaidDrops = item.priceDrops,
+            purchasedAt = now
+        )
+    )
+    if (purchaseId == -1L) throw PurchaseRollbackException()
+
+    item.linkedPlantTypeId?.let { plantTypeId ->
+        purchaseDao.insertUnlockedPlant(
+            UserUnlockedPlantEntity(
+                userId = userId,
+                plantTypeId = plantTypeId,
+                unlockedAt = now
+            )
+        )
+    }
+    return true
+}

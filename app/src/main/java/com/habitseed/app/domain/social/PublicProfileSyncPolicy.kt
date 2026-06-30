@@ -34,9 +34,16 @@ object PublicProfileSyncPolicy {
             profile.photoUrl.orEmpty(),
             profile.currentStreak.toString(),
             profile.bestStreak.toString(),
+            profile.gardenLevel.toString(),
+            profile.gardenLevelTitle,
+            profile.gardenLevelProgressPercent.toString(),
             profile.fullyGrownPlants.toString(),
+            profile.totalPlants.toString(),
+            profile.highestPlantTypeId.orEmpty(),
+            profile.highestPlantGrowthStage.toString(),
             profile.weeklyCompletionRate.toString(),
             profile.totalCompletions.toString(),
+            profile.perfectDays.toString(),
             profile.lastActiveDateKey.orEmpty()
         ).joinToString(separator = "|")
         val digest = MessageDigest.getInstance("SHA-256")

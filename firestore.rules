@@ -1,0 +1,164 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validNullableString(value) {
+      return value == null || value is string;
+    }
+
+    function validPublicProfileKeys() {
+      return request.resource.data.keys().hasOnly([
+        'uid',
+        'displayName',
+        'photoUrl',
+        'currentStreak',
+        'bestStreak',
+        'gardenLevel',
+        'gardenLevelTitle',
+        'gardenLevelProgressPercent',
+        'fullyGrownPlants',
+        'totalPlants',
+        'highestPlantTypeId',
+        'highestPlantGrowthStage',
+        'weeklyCompletionRate',
+        'totalCompletions',
+        'perfectDays',
+        'lastActiveDateKey',
+        'createdAt',
+        'updatedAt'
+      ]);
+    }
+
+    function validPublicProfileTypes() {
+      return request.resource.data.uid is string
+        && request.resource.data.displayName is string
+        && validNullableString(request.resource.data.photoUrl)
+        && request.resource.data.currentStreak is int
+        && request.resource.data.bestStreak is int
+        && request.resource.data.gardenLevel is int
+        && request.resource.data.gardenLevel >= 1
+        && request.resource.data.gardenLevel <= 10
+        && request.resource.data.gardenLevelTitle is string
+        && request.resource.data.gardenLevelProgressPercent is int
+        && request.resource.data.gardenLevelProgressPercent >= 0
+        && request.resource.data.gardenLevelProgressPercent <= 100
+        && request.resource.data.fullyGrownPlants is int
+        && request.resource.data.fullyGrownPlants >= 0
+        && request.resource.data.totalPlants is int
+        && request.resource.data.totalPlants >= 0
+        && validNullableString(request.resource.data.highestPlantTypeId)
+        && request.resource.data.highestPlantGrowthStage is int
+        && request.resource.data.highestPlantGrowthStage >= 0
+        && request.resource.data.highestPlantGrowthStage <= 5
+        && request.resource.data.weeklyCompletionRate is number
+        && request.resource.data.weeklyCompletionRate >= 0
+        && request.resource.data.weeklyCompletionRate <= 100
+        && request.resource.data.totalCompletions is int
+        && request.resource.data.totalCompletions >= 0
+        && request.resource.data.perfectDays is int
+        && request.resource.data.perfectDays >= 0
+        && validNullableString(request.resource.data.lastActiveDateKey)
+        && request.resource.data.createdAt is int
+        && request.resource.data.updatedAt is int;
+    }
+
+    function validFollowingKeys() {
+      return request.resource.data.keys().hasOnly([
+        'targetUid',
+        'displayNameSnapshot',
+        'photoUrlSnapshot',
+        'followedAt',
+        'gardenLevelSnapshot',
+        'gardenLevelTitleSnapshot',
+        'weeklyCompletionRateSnapshot',
+        'fullyGrownPlantsSnapshot',
+        'highestPlantTypeIdSnapshot',
+        'highestPlantGrowthStageSnapshot',
+        'currentStreakSnapshot'
+      ]);
+    }
+
+    function validFollowingTypes(targetUid) {
+      return request.resource.data.targetUid == targetUid
+        && request.resource.data.targetUid is string
+        && request.resource.data.displayNameSnapshot is string
+        && validNullableString(request.resource.data.photoUrlSnapshot)
+        && request.resource.data.followedAt is int
+        && request.resource.data.gardenLevelSnapshot is int
+        && request.resource.data.gardenLevelSnapshot >= 1
+        && request.resource.data.gardenLevelSnapshot <= 10
+        && request.resource.data.gardenLevelTitleSnapshot is string
+        && request.resource.data.weeklyCompletionRateSnapshot is number
+        && request.resource.data.weeklyCompletionRateSnapshot >= 0
+        && request.resource.data.weeklyCompletionRateSnapshot <= 100
+        && request.resource.data.fullyGrownPlantsSnapshot is int
+        && request.resource.data.fullyGrownPlantsSnapshot >= 0
+        && validNullableString(request.resource.data.highestPlantTypeIdSnapshot)
+        && request.resource.data.highestPlantGrowthStageSnapshot is int
+        && request.resource.data.highestPlantGrowthStageSnapshot >= 0
+        && request.resource.data.highestPlantGrowthStageSnapshot <= 5
+        && request.resource.data.currentStreakSnapshot is int
+        && request.resource.data.currentStreakSnapshot >= 0;
+    }
+
+    match /public_profiles/{uid} {
+      allow read: if signedIn();
+
+      allow create, update: if isOwner(uid)
+        && request.resource.data.uid == request.auth.uid
+        && validPublicProfileKeys()
+        && validPublicProfileTypes();
+
+      allow delete: if isOwner(uid);
+    }
+
+    match /users/{uid}/following/{targetUid} {
+      allow read: if isOwner(uid);
+
+      allow create, update: if isOwner(uid)
+        && validFollowingKeys()
+        && validFollowingTypes(targetUid);
+
+      allow delete: if isOwner(uid);
+    }
+
+    match /nudges/{nudgeId} {
+      allow create: if signedIn()
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.messageType is string
+        && request.resource.data.message is string
+        && request.resource.data.keys().hasOnly([
+          'fromUid',
+          'toUid',
+          'fromName',
+          'fromPhotoUrl',
+          'messageType',
+          'message',
+          'createdAt',
+          'readAt'
+        ]);
+
+      allow read: if signedIn()
+        && (
+          resource.data.fromUid == request.auth.uid ||
+          resource.data.toUid == request.auth.uid
+        );
+
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt']);
+
+      allow delete: if false;
+    }
+  }
+}
