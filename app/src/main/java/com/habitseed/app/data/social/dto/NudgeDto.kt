@@ -1,6 +1,7 @@
 package com.habitseed.app.data.social.dto
 
 data class NudgeDto(
+    val id: String = "",
     val fromUid: String = "",
     val toUid: String = "",
     val fromName: String = "",

@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.habitseed.app.ui.feedback.rememberHabitSeedHaptics
+import com.habitseed.app.ui.feedback.rememberNotificationPermissionRequester
 import com.habitseed.app.ui.theme.DarkSlate
 import com.habitseed.app.ui.theme.HabitSeedDimens
 import java.time.Instant
@@ -73,6 +75,17 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
+    val haptics = rememberHabitSeedHaptics()
+    val requestNotificationPermission = rememberNotificationPermissionRequester(
+        onGranted = {
+            haptics.selection()
+            viewModel.toggleNotifications(true)
+        },
+        onDenied = {
+            haptics.warning()
+            viewModel.showMessage("Allow notifications to receive habit reminders.")
+        }
+    )
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -125,7 +138,10 @@ fun ProfileScreen(
                             icon = Icons.Filled.Edit,
                             title = "Edit Profile",
                             subtitle = "Update your name and profile image",
-                            onClick = onEditProfile
+                            onClick = {
+                                haptics.selection()
+                                onEditProfile()
+                            }
                         )
                     )
                 )
@@ -136,6 +152,7 @@ fun ProfileScreen(
                     firebaseUid = user?.firebaseUid,
                     clipboardManager = clipboardManager,
                     onCopy = { message ->
+                        haptics.success()
                         viewModel.showMessage(message)
                     }
                 )
@@ -151,11 +168,30 @@ fun ProfileScreen(
                         hour = settings?.reminderHour ?: 8,
                         minute = settings?.reminderMinute ?: 0
                     ),
-                    onToggleNotifications = viewModel::toggleNotifications,
-                    onToggleDarkMode = viewModel::toggleDarkMode,
-                    onToggleSound = viewModel::toggleSound,
-                    onToggleHaptics = viewModel::toggleHaptics,
-                    onReminderClick = viewModel::cycleReminderTime
+                    onToggleNotifications = { enabled ->
+                        if (enabled) {
+                            requestNotificationPermission()
+                        } else {
+                            haptics.selection()
+                            viewModel.toggleNotifications(false)
+                        }
+                    },
+                    onToggleDarkMode = {
+                        haptics.selection()
+                        viewModel.toggleDarkMode(it)
+                    },
+                    onToggleSound = {
+                        haptics.selection()
+                        viewModel.toggleSound(it)
+                    },
+                    onToggleHaptics = {
+                        haptics.selection()
+                        viewModel.toggleHaptics(it)
+                    },
+                    onReminderClick = {
+                        haptics.selection()
+                        viewModel.cycleReminderTime()
+                    }
                 )
             }
 
@@ -169,7 +205,10 @@ fun ProfileScreen(
                             subtitle = "Return to the login screen",
                             tint = MaterialTheme.colorScheme.error,
                             titleColor = MaterialTheme.colorScheme.error,
-                            onClick = viewModel::logout
+                            onClick = {
+                                haptics.selection()
+                                viewModel.logout()
+                            }
                         )
                     )
                 )

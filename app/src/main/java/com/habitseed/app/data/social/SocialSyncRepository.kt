@@ -220,6 +220,33 @@ class SocialSyncRepository @Inject constructor(
         }
     }
 
+    suspend fun loadUnreadNudgesForAppOpen(): Result<List<NudgeDto>> {
+        val authUser = authRepository.currentUser()
+            ?: return Result.success(emptyList())
+        return runCatching {
+            val hasCachedFollowing = cachedFollowingProfileDao.observeProfiles()
+                .first()
+                .isNotEmpty()
+            val hasRemoteFollowing = hasCachedFollowing ||
+                remoteDataSource.getFollowing(authUser.uid).isNotEmpty()
+            if (!hasRemoteFollowing) {
+                emptyList()
+            } else {
+                remoteDataSource.getUnreadNudges(authUser.uid)
+            }
+        }
+    }
+
+    suspend fun markNudgesRead(nudges: List<NudgeDto>): Result<Unit> {
+        if (nudges.isEmpty()) return Result.success(Unit)
+        return runCatching {
+            val readAt = System.currentTimeMillis()
+            nudges.forEach { nudge ->
+                remoteDataSource.markNudgeRead(nudge.id, readAt)
+            }
+        }
+    }
+
     private companion object {
         const val LEADERBOARD_CACHE_KEY = "leaderboard"
         const val FOLLOWING_CACHE_KEY = "following"

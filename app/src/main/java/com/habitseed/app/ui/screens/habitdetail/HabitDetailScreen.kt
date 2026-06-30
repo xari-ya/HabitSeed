@@ -7,9 +7,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -55,6 +57,7 @@ import com.habitseed.app.domain.gamification.PlantGrowthCalculator
 import com.habitseed.app.ui.components.PlantVisualizer
 import com.habitseed.app.ui.components.StatCard
 import com.habitseed.app.ui.components.SwipeToCompleteSlider
+import com.habitseed.app.ui.feedback.rememberHabitSeedHaptics
 import com.habitseed.app.ui.theme.ForestGreen
 import java.time.format.TextStyle
 import java.util.Locale
@@ -67,10 +70,14 @@ fun HabitDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showCelebration by remember { mutableStateOf(false) }
+    val haptics = rememberHabitSeedHaptics()
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { message ->
             showCelebration = true
+            if (message.isMilestoneReward()) {
+                haptics.success()
+            }
             snackbarHostState.showSnackbar(message)
             showCelebration = false
         }
@@ -185,24 +192,25 @@ fun HabitDetailScreen(
                         .padding(horizontal = 20.dp, vertical = 18.dp)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         StatCard(
                             label = "Health",
                             value = uiState.plantHealthInfo.label,
-                            modifier = Modifier.weight(1f),
-                            isHighlighted = true
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                         StatCard(
                             label = "Streak",
                             value = "${habit.currentStreak}d",
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                         StatCard(
                             label = "Growth",
                             value = PlantGrowthCalculator.completionsText(habit.totalCompletions),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
@@ -235,6 +243,12 @@ fun HabitDetailScreen(
             }
         }
     }
+}
+
+private fun String.isMilestoneReward(): Boolean {
+    return startsWith("Your plant reached") ||
+        startsWith("Fully grown plant") ||
+        startsWith("Perfect day")
 }
 
 @Composable

@@ -7,9 +7,12 @@ import com.habitseed.app.data.local.entity.UserEntity
 import com.habitseed.app.data.local.entity.UserSettingsEntity
 import com.habitseed.app.data.social.PublicProfileSyncReason
 import com.habitseed.app.data.social.SocialSyncRepository
+import com.habitseed.app.domain.repository.HabitRepository
 import com.habitseed.app.domain.repository.UserRepository
+import com.habitseed.app.notifications.HabitReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,6 +36,8 @@ sealed interface ProfileEvent {
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
+    private val habitRepository: HabitRepository,
+    private val reminderScheduler: HabitReminderScheduler,
     private val authRepository: AuthRepository,
     private val socialSyncRepository: SocialSyncRepository
 ) : ViewModel() {
@@ -54,7 +59,7 @@ class ProfileViewModel @Inject constructor(
         initialValue = ProfileUiState()
     )
 
-    fun toggleNotifications(enabled: Boolean) = updateSettings {
+    fun toggleNotifications(enabled: Boolean) = updateSettings(rescheduleReminders = true) {
         copy(notificationsEnabled = enabled)
     }
 
@@ -71,7 +76,7 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun cycleReminderTime() {
-        updateSettings {
+        updateSettings(rescheduleReminders = true) {
             val nextHour = when (reminderHour) {
                 8 -> 12
                 12 -> 18
@@ -146,10 +151,18 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    private fun updateSettings(transform: UserSettingsEntity.() -> UserSettingsEntity) {
+    private fun updateSettings(
+        rescheduleReminders: Boolean = false,
+        transform: UserSettingsEntity.() -> UserSettingsEntity
+    ) {
         viewModelScope.launch {
             val currentSettings = uiState.value.settings ?: UserSettingsEntity()
-            userRepository.updateSettings(currentSettings.transform())
+            val updatedSettings = currentSettings.transform()
+            userRepository.updateSettings(updatedSettings)
+            if (rescheduleReminders) {
+                val habits = habitRepository.getAllHabits().first()
+                reminderScheduler.syncReminders(settings = updatedSettings, habits = habits)
+            }
         }
     }
 }

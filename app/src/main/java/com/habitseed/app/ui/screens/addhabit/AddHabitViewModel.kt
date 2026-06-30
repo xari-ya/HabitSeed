@@ -3,11 +3,15 @@ package com.habitseed.app.ui.screens.addhabit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.habitseed.app.data.local.entity.HabitEntity
+import com.habitseed.app.data.local.entity.UserSettingsEntity
 import com.habitseed.app.domain.repository.HabitRepository
 import com.habitseed.app.domain.repository.ShopRepository
+import com.habitseed.app.domain.repository.UserRepository
+import com.habitseed.app.notifications.HabitReminderScheduler
 import com.habitseed.app.ui.components.PlantAssetMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -22,6 +26,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class AddHabitViewModel @Inject constructor(
     private val habitRepository: HabitRepository,
+    private val userRepository: UserRepository,
+    private val reminderScheduler: HabitReminderScheduler,
     shopRepository: ShopRepository
 ) : ViewModel() {
 
@@ -105,6 +111,12 @@ class AddHabitViewModel @Inject constructor(
         _reminderEnabled.value = enabled
     }
 
+    fun showMessage(message: String) {
+        viewModelScope.launch {
+            _messages.emit(message)
+        }
+    }
+
     fun resetForm() {
         _title.value = ""
         _description.value = ""
@@ -120,6 +132,7 @@ class AddHabitViewModel @Inject constructor(
 
         viewModelScope.launch {
             val frequencyType = _frequency.value.uppercase()
+            val settings = userRepository.getSettings().first() ?: UserSettingsEntity()
             val newHabit = HabitEntity(
                 name = _title.value.trim(),
                 description = _description.value.trim().ifBlank { null },
@@ -131,9 +144,14 @@ class AddHabitViewModel @Inject constructor(
                     "WEEKLY" -> 62
                     else -> null
                 },
-                plantTypeId = _selectedPlant.value
+                plantTypeId = _selectedPlant.value,
+                reminderEnabled = _reminderEnabled.value,
+                reminderHour = settings.reminderHour.takeIf { _reminderEnabled.value },
+                reminderMinute = settings.reminderMinute.takeIf { _reminderEnabled.value }
             )
             habitRepository.insertHabit(newHabit)
+            val habits = habitRepository.getAllHabits().first()
+            reminderScheduler.syncReminders(settings = settings, habits = habits)
             resetForm()
             onSuccess()
         }

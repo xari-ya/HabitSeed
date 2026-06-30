@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.habitseed.app.R
+import com.habitseed.app.ui.feedback.rememberHabitSeedHaptics
 import com.habitseed.app.ui.theme.HabitSeedDimens
 
 @Composable
@@ -41,6 +42,8 @@ fun OnboardingScreen(
     onGetStarted: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptics = rememberHabitSeedHaptics()
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -117,7 +120,10 @@ fun OnboardingScreen(
                 OnboardingDots()
                 Spacer(modifier = Modifier.weight(1f))
                 Button(
-                    onClick = onGetStarted,
+                    onClick = {
+                        haptics.selection()
+                        onGetStarted()
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(HabitSeedDimens.ButtonHeight),

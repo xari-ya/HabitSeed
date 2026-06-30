@@ -1,5 +1,6 @@
 package com.habitseed.app.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -20,14 +21,13 @@ fun StatCard(
     modifier: Modifier = Modifier,
     isHighlighted: Boolean = false
 ) {
-    val borderModifier = if (isHighlighted) Modifier.padding(bottom = 4.dp) else Modifier
     val hasLongValue = value.length > 6 || value.contains(" ")
 
     Card(
         modifier = modifier
-            .fillMaxWidth()
-            .then(borderModifier),
+            .fillMaxWidth(),
         shape = RoundedCornerShape(HabitSeedDimens.CardRadius),
+        border = if (isHighlighted) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) else null,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -35,6 +35,7 @@ fun StatCard(
     ) {
         Column(
             modifier = Modifier
+                .fillMaxHeight()
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -51,13 +52,13 @@ fun StatCard(
                 text = value,
                 style = if (hasLongValue) {
                     MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 19.sp,
-                        lineHeight = 23.sp
+                        fontSize = 18.sp,
+                        lineHeight = 22.sp
                     )
                 } else {
                     MaterialTheme.typography.headlineMedium.copy(
-                        fontSize = 31.sp,
-                        lineHeight = 35.sp
+                        fontSize = 24.sp,
+                        lineHeight = 28.sp
                     )
                 },
                 color = MaterialTheme.colorScheme.primary,

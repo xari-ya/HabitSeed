@@ -61,6 +61,7 @@ import com.habitseed.app.domain.gamification.PlantGrowthCalculator
 import com.habitseed.app.domain.gamification.PlantHealthCalculator
 import com.habitseed.app.domain.util.DateUtils
 import com.habitseed.app.ui.components.PlantVisualizer
+import com.habitseed.app.ui.feedback.rememberHabitSeedHaptics
 import com.habitseed.app.ui.screens.addhabit.AddHabitSheet
 import com.habitseed.app.ui.theme.HabitSeedDimens
 import java.util.Calendar
@@ -74,12 +75,16 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddHabitSheet by remember { mutableStateOf(false) }
     val heroPlant = uiState.todayHabits.firstOrNull()?.habit
+    val haptics = rememberHabitSeedHaptics()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddHabitSheet = true },
+                onClick = {
+                    haptics.selection()
+                    showAddHabitSheet = true
+                },
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary
             ) {
@@ -132,7 +137,10 @@ fun HomeScreen(
                 items(uiState.todayHabits, key = { it.habit.id }) { habitStatus ->
                     TodayHabitRow(
                         habitStatus = habitStatus,
-                        onClick = { onNavigateToHabitDetail(habitStatus.habit.id) }
+                        onClick = {
+                            haptics.selection()
+                            onNavigateToHabitDetail(habitStatus.habit.id)
+                        }
                     )
                 }
             }

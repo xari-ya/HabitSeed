@@ -66,6 +66,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.habitseed.app.ui.theme.ForestGreen
 import com.habitseed.app.ui.theme.HabitSeedDimens
 import com.habitseed.app.ui.theme.SunsetOrange
+import com.habitseed.app.ui.feedback.rememberHabitSeedHaptics
+import com.habitseed.app.ui.feedback.rememberNotificationPermissionRequester
 
 private data class HabitIconOption(
     val id: String,
@@ -111,9 +113,20 @@ fun AddHabitScreen(
     val reminderEnabled by viewModel.reminderEnabled.collectAsStateWithLifecycle()
     val plantChoices by viewModel.plantChoices.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val haptics = rememberHabitSeedHaptics()
+    val requestNotificationsForReminder = rememberNotificationPermissionRequester(
+        onGranted = {
+            haptics.selection()
+            viewModel.updateReminderEnabled(true)
+        },
+        onDenied = {
+            viewModel.showMessage("Allow notifications to use habit reminders.")
+        }
+    )
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { message ->
+            haptics.warning()
             snackbarHostState.showSnackbar(message)
         }
     }
@@ -145,12 +158,34 @@ fun AddHabitScreen(
             reminderEnabled = reminderEnabled,
             onTitleChanged = viewModel::updateTitle,
             onDescriptionChanged = viewModel::updateDescription,
-            onFrequencyChanged = viewModel::updateFrequency,
-            onSelectedPlantChanged = viewModel::updateSelectedPlant,
-            onSelectedIconChanged = viewModel::updateSelectedIcon,
-            onSelectedColorChanged = viewModel::updateSelectedColor,
-            onReminderChanged = viewModel::updateReminderEnabled,
-            onSave = { viewModel.saveHabit(onNavigateBack) },
+            onFrequencyChanged = {
+                haptics.selection()
+                viewModel.updateFrequency(it)
+            },
+            onSelectedPlantChanged = {
+                haptics.selection()
+                viewModel.updateSelectedPlant(it)
+            },
+            onSelectedIconChanged = {
+                haptics.selection()
+                viewModel.updateSelectedIcon(it)
+            },
+            onSelectedColorChanged = {
+                haptics.selection()
+                viewModel.updateSelectedColor(it)
+            },
+            onReminderChanged = { enabled ->
+                if (enabled) {
+                    requestNotificationsForReminder()
+                } else {
+                    haptics.selection()
+                    viewModel.updateReminderEnabled(false)
+                }
+            },
+            onSave = {
+                haptics.success()
+                viewModel.saveHabit(onNavigateBack)
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
@@ -173,9 +208,20 @@ fun AddHabitSheet(
     val reminderEnabled by viewModel.reminderEnabled.collectAsStateWithLifecycle()
     val plantChoices by viewModel.plantChoices.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val haptics = rememberHabitSeedHaptics()
+    val requestNotificationsForReminder = rememberNotificationPermissionRequester(
+        onGranted = {
+            haptics.selection()
+            viewModel.updateReminderEnabled(true)
+        },
+        onDenied = {
+            viewModel.showMessage("Allow notifications to use habit reminders.")
+        }
+    )
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { message ->
+            haptics.warning()
             snackbarHostState.showSnackbar(message)
         }
     }
@@ -231,12 +277,34 @@ fun AddHabitSheet(
                 reminderEnabled = reminderEnabled,
                 onTitleChanged = viewModel::updateTitle,
                 onDescriptionChanged = viewModel::updateDescription,
-                onFrequencyChanged = viewModel::updateFrequency,
-                onSelectedPlantChanged = viewModel::updateSelectedPlant,
-                onSelectedIconChanged = viewModel::updateSelectedIcon,
-                onSelectedColorChanged = viewModel::updateSelectedColor,
-                onReminderChanged = viewModel::updateReminderEnabled,
-                onSave = { viewModel.saveHabit(onDismiss) }
+                onFrequencyChanged = {
+                    haptics.selection()
+                    viewModel.updateFrequency(it)
+                },
+                onSelectedPlantChanged = {
+                    haptics.selection()
+                    viewModel.updateSelectedPlant(it)
+                },
+                onSelectedIconChanged = {
+                    haptics.selection()
+                    viewModel.updateSelectedIcon(it)
+                },
+                onSelectedColorChanged = {
+                    haptics.selection()
+                    viewModel.updateSelectedColor(it)
+                },
+                onReminderChanged = { enabled ->
+                    if (enabled) {
+                        requestNotificationsForReminder()
+                    } else {
+                        haptics.selection()
+                        viewModel.updateReminderEnabled(false)
+                    }
+                },
+                onSave = {
+                    haptics.success()
+                    viewModel.saveHabit(onDismiss)
+                }
             )
             SnackbarHost(hostState = snackbarHostState)
         }

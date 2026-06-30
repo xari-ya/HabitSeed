@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.habitseed.app.ui.feedback.rememberHabitSeedHaptics
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -58,6 +59,7 @@ fun SwipeToCompleteSlider(
 
     val offsetX = remember { Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
+    val haptics = rememberHabitSeedHaptics()
 
     LaunchedEffect(isCompleted, maxDragX) {
         if (isCompleted && maxDragX > 0f) {
@@ -126,11 +128,13 @@ fun SwipeToCompleteSlider(
                         if (offsetX.value >= maxDragX * 0.9f) {
                             coroutineScope.launch {
                                 offsetX.animateTo(maxDragX, tween(220))
+                                haptics.success()
                                 onComplete()
                             }
                         } else {
                             coroutineScope.launch {
                                 offsetX.animateTo(0f, tween(220))
+                                haptics.selection()
                             }
                         }
                     }

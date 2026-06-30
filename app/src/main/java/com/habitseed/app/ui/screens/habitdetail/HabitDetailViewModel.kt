@@ -10,7 +10,9 @@ import com.habitseed.app.data.social.SocialSyncRepository
 import com.habitseed.app.domain.gamification.PlantHealthCalculator
 import com.habitseed.app.domain.gamification.PlantHealthInfo
 import com.habitseed.app.domain.repository.HabitRepository
+import com.habitseed.app.domain.repository.UserRepository
 import com.habitseed.app.domain.util.DateUtils
+import com.habitseed.app.notifications.HabitSeedNotifier
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -20,13 +22,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 @HiltViewModel
 class HabitDetailViewModel @Inject constructor(
     private val habitRepository: HabitRepository,
+    private val userRepository: UserRepository,
     private val socialSyncRepository: SocialSyncRepository,
+    private val notifier: HabitSeedNotifier,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -113,10 +118,26 @@ class HabitDetailViewModel @Inject constructor(
                     socialSyncRepository.syncPublicProfile(PublicProfileSyncReason.HABIT_COMPLETED)
                 }
                 result.messages.forEach { message ->
+                    if (message.isMilestoneReward() && notificationsEnabled()) {
+                        notifier.showReward(
+                            title = "HabitSeed reward",
+                            message = message
+                        )
+                    }
                     _events.emit(message)
                 }
             }
         }
+    }
+
+    private fun String.isMilestoneReward(): Boolean {
+        return startsWith("Your plant reached") ||
+            startsWith("Fully grown plant") ||
+            startsWith("Perfect day")
+    }
+
+    private suspend fun notificationsEnabled(): Boolean {
+        return userRepository.getSettings().first()?.notificationsEnabled == true
     }
 }
 

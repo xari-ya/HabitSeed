@@ -12,4 +12,6 @@ interface SocialRemoteDataSource {
     suspend fun followUser(currentUid: String, following: FollowingDto)
     suspend fun unfollowUser(currentUid: String, targetUid: String)
     suspend fun sendNudge(nudge: NudgeDto)
+    suspend fun getUnreadNudges(toUid: String, limit: Long = 20): List<NudgeDto>
+    suspend fun markNudgeRead(nudgeId: String, readAt: Long)
 }

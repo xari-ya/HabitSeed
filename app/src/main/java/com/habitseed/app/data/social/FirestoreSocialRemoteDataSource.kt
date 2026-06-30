@@ -71,6 +71,29 @@ class FirestoreSocialRemoteDataSource @Inject constructor(
             .await()
     }
 
+    override suspend fun getUnreadNudges(toUid: String, limit: Long): List<NudgeDto> {
+        return firestore.collection(NUDGES)
+            .whereEqualTo("toUid", toUid)
+            .limit(limit)
+            .get()
+            .await()
+            .documents
+            .mapNotNull { document ->
+                document.toObject(NudgeDto::class.java)
+                    ?.copy(id = document.id)
+            }
+            .filter { it.readAt == null }
+            .sortedByDescending { it.createdAt }
+    }
+
+    override suspend fun markNudgeRead(nudgeId: String, readAt: Long) {
+        if (nudgeId.isBlank()) return
+        firestore.collection(NUDGES)
+            .document(nudgeId)
+            .update("readAt", readAt)
+            .await()
+    }
+
     private companion object {
         const val PUBLIC_PROFILES = "public_profiles"
         const val USERS = "users"

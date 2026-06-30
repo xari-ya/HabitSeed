@@ -55,6 +55,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.habitseed.app.data.local.model.ShopItemWithStatus
 import com.habitseed.app.ui.components.PlantAssetMapper
+import com.habitseed.app.ui.feedback.rememberHabitSeedHaptics
 import com.habitseed.app.ui.theme.HabitSeedDimens
 
 private enum class StoreFilter(val label: String) {
@@ -72,9 +73,15 @@ fun ShopScreen(
     val shopItems by viewModel.shopItems.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedFilter by remember { mutableStateOf(StoreFilter.All) }
+    val haptics = rememberHabitSeedHaptics()
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { message ->
+            if (message.endsWith("unlocked.")) {
+                haptics.success()
+            } else {
+                haptics.warning()
+            }
             snackbarHostState.showSnackbar(message)
         }
     }
@@ -123,7 +130,10 @@ fun ShopScreen(
                         FilterChip(
                             modifier = Modifier.weight(1f),
                             selected = selectedFilter == filter,
-                            onClick = { selectedFilter = filter },
+                            onClick = {
+                                haptics.selection()
+                                selectedFilter = filter
+                            },
                             label = {
                                 Text(
                                     text = filter.label,

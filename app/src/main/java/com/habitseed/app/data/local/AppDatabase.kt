@@ -46,7 +46,7 @@ import com.habitseed.app.data.local.entity.UserUnlockedPlantEntity
         CachedFollowingProfileEntity::class,
         SocialCacheMetadataEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -195,6 +195,14 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE cached_following_profiles ADD COLUMN highestPlantTypeIdSnapshot TEXT")
                 db.execSQL("ALTER TABLE cached_following_profiles ADD COLUMN highestPlantGrowthStageSnapshot INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE cached_following_profiles ADD COLUMN currentStreakSnapshot INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE habits ADD COLUMN reminderEnabled INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE habits ADD COLUMN reminderHour INTEGER")
+                db.execSQL("ALTER TABLE habits ADD COLUMN reminderMinute INTEGER")
             }
         }
     }

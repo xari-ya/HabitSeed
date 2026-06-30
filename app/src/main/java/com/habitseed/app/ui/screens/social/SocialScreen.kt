@@ -67,6 +67,7 @@ import com.habitseed.app.data.local.entity.FriendEntity
 import com.habitseed.app.data.social.dto.FollowingDto
 import com.habitseed.app.data.social.dto.PublicProfileDto
 import com.habitseed.app.ui.components.PlantAssetMapper
+import com.habitseed.app.ui.feedback.rememberHabitSeedHaptics
 import com.habitseed.app.ui.theme.HabitSeedDimens
 
 @Composable
@@ -77,12 +78,18 @@ fun SocialScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showAddFriendDialog by remember { mutableStateOf(false) }
     var friendUid by remember { mutableStateOf("") }
+    val haptics = rememberHabitSeedHaptics()
     val demoFriends = remember(uiState.friends, uiState.selectedTab) {
         friendsForTab(uiState.friends, uiState.selectedTab)
     }
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { message ->
+            if (message.isSocialSuccess()) {
+                haptics.success()
+            } else {
+                haptics.warning()
+            }
             snackbarHostState.showSnackbar(message)
         }
     }
@@ -106,7 +113,10 @@ fun SocialScreen(
             item {
                 SocialTabs(
                     selectedTab = uiState.selectedTab,
-                    onSelectTab = viewModel::selectTab
+                    onSelectTab = {
+                        haptics.selection()
+                        viewModel.selectTab(it)
+                    }
                 )
             }
 
@@ -114,13 +124,19 @@ fun SocialScreen(
                 if (uiState.selectedTab == SocialTab.Leaderboard) {
                     item {
                         LeaderboardActionRow(
-                            onRefresh = viewModel::refresh
+                            onRefresh = {
+                                haptics.selection()
+                                viewModel.refresh()
+                            }
                         )
                     }
                 } else {
                     item {
                         AddFriendCard(
-                            onAddFriend = { showAddFriendDialog = true }
+                            onAddFriend = {
+                                haptics.selection()
+                                showAddFriendDialog = true
+                            }
                         )
                     }
                 }
@@ -168,8 +184,14 @@ fun SocialScreen(
                                 friend = friend,
                                 rank = index + 1,
                                 isNudgeInFlight = uiState.nudgingTargetUid == friend.targetUid,
-                                onNudge = { viewModel.sendNudge(friend) },
-                                onUnfollow = { viewModel.unfollow(friend) }
+                                onNudge = {
+                                    haptics.selection()
+                                    viewModel.sendNudge(friend)
+                                },
+                                onUnfollow = {
+                                    haptics.selection()
+                                    viewModel.unfollow(friend)
+                                }
                             )
                         }
                     }
@@ -195,7 +217,10 @@ fun SocialScreen(
                             friend = friend,
                             rank = index + 1,
                             mode = uiState.selectedTab,
-                            onNudge = { viewModel.sendNudge(friend) }
+                            onNudge = {
+                                haptics.selection()
+                                viewModel.sendNudge(friend)
+                            }
                         )
                     }
                 }
@@ -207,14 +232,24 @@ fun SocialScreen(
         AddFriendDialog(
             uid = friendUid,
             onUidChange = { friendUid = it },
-            onDismiss = { showAddFriendDialog = false },
+            onDismiss = {
+                haptics.selection()
+                showAddFriendDialog = false
+            },
             onAddFriend = {
+                haptics.selection()
                 viewModel.addFriendByUid(friendUid)
                 friendUid = ""
                 showAddFriendDialog = false
             }
         )
     }
+}
+
+private fun String.isSocialSuccess(): Boolean {
+    return this == "Friend added." ||
+        this == "Friend removed." ||
+        startsWith("Nudge sent")
 }
 
 @Composable

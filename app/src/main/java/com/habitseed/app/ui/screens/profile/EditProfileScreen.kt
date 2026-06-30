@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.habitseed.app.ui.feedback.rememberHabitSeedHaptics
 import com.habitseed.app.ui.theme.HabitSeedDimens
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +59,7 @@ fun EditProfileScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val user = uiState.user
+    val haptics = rememberHabitSeedHaptics()
 
     var name by rememberSaveable(user?.updatedAt) { mutableStateOf(user?.name.orEmpty()) }
     var avatarUrl by rememberSaveable(user?.updatedAt) { mutableStateOf(user?.avatarUrl.orEmpty()) }
@@ -65,8 +67,14 @@ fun EditProfileScreen(
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                is ProfileEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
-                ProfileEvent.ProfileSaved -> onNavigateBack()
+                is ProfileEvent.ShowMessage -> {
+                    haptics.warning()
+                    snackbarHostState.showSnackbar(event.message)
+                }
+                ProfileEvent.ProfileSaved -> {
+                    haptics.success()
+                    onNavigateBack()
+                }
                 ProfileEvent.Logout -> Unit
             }
         }
@@ -79,7 +87,12 @@ fun EditProfileScreen(
             TopAppBar(
                 title = { Text("Edit Profile") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(
+                        onClick = {
+                            haptics.selection()
+                            onNavigateBack()
+                        }
+                    ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },

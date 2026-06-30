@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.habitseed.app.R
+import com.habitseed.app.ui.feedback.rememberHabitSeedHaptics
 import com.habitseed.app.ui.theme.HabitSeedDimens
 
 @Composable
@@ -52,12 +53,19 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val haptics = rememberHabitSeedHaptics()
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                LoginEvent.NavigateHome -> onLoginSuccess()
-                is LoginEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
+                LoginEvent.NavigateHome -> {
+                    haptics.success()
+                    onLoginSuccess()
+                }
+                is LoginEvent.ShowMessage -> {
+                    haptics.warning()
+                    snackbarHostState.showSnackbar(event.message)
+                }
             }
         }
     }
@@ -131,7 +139,10 @@ fun LoginScreen(
                         textAlign = TextAlign.Center
                     )
                     Button(
-                        onClick = { viewModel.onGoogleLoginClicked(context) },
+                        onClick = {
+                            haptics.selection()
+                            viewModel.onGoogleLoginClicked(context)
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(HabitSeedDimens.ButtonHeight),
