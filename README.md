@@ -4,9 +4,9 @@
 
 # HabitSeed 🌱
 
-HabitSeed is a gamified Android habit-tracking app that turns daily routines into a growing digital garden. Users create habits, complete them daily, earn water drops, grow plants, unlock rewards, view statistics, interact with mock friends, and manage their profile settings.
+HabitSeed is a gamified Android habit tracker that turns daily routines into a growing digital garden. Users create habits, swipe to water them, earn water drops and Garden XP, grow plants through six stages, unlock new plants, review progress, and connect with friends through Firebase-backed social gardens.
 
-The project is built as a local-first Android application using Kotlin, Jetpack Compose, Room, Hilt, Material 3, and Navigation Compose.
+The app is built with Kotlin, Jetpack Compose, Room, Hilt, Material 3, WorkManager, Firebase Auth, and Firestore. Private habit data stays local in Room; the cloud layer only publishes a safe public garden summary for leaderboard and following features.
 
 ---
 
@@ -24,129 +24,130 @@ The project is built as a local-first Android application using Kotlin, Jetpack 
 | -------------------------------------------- | -------------------------------------------- | ----------------------------------------- |
 | ![Statistics](docs/screenshots/07-stats.png) | ![Seed Store](docs/screenshots/08-store.png) | ![Social](docs/screenshots/09-social.png) |
 
-| Profile                                     |
-| ------------------------------------------- |
-| ![Profile](docs/screenshots/10-profile.png) |
 
 ---
 
-## Features
+## Current App
 
-* Splash screen with HabitSeed branding
-* Onboarding flow
-* Local demo login/sign-up flow
-* Home dashboard with daily habit progress
-* Add Habit modal bottom sheet
-* Habit detail screen with swipe-to-water interaction
-* One-completion-per-day habit protection
-* Water drop reward system
-* Plant growth system
-* Streak and completion tracking
-* Statistics dashboard with progress overview
-* Seed Store with unlockable plants/rewards
-* Local purchase and ownership persistence
-* Social/Friends Gardens screen with mock accountability features
-* Profile and settings screen
-* Persistent local data using Room
-* Bottom navigation across main app screens
-* Jetpack Compose UI with Material 3 styling
-* Hilt dependency injection
-* Navigation Compose routing
+HabitSeed now includes the full Compose app flow:
+
+* Splash, onboarding, Firebase/Google login, and logout
+* Home greenhouse with daily habits, streaks, Garden XP, and plant status
+* Add Habit flow with plant selection, frequency settings, and optional reminders
+* Habit detail screen with swipe-to-water completion, plant growth, and health feedback
+* Statistics screen using real Room completion logs
+* Seed Store with unlockable plant catalog and local purchase persistence
+* Social gardens with Firestore leaderboard, following, friend search by UID, and nudges
+* Profile and edit-profile screens with avatar URL, settings, and public profile sync
+* Notification reminders, plant health alerts, reward notifications, social nudge alerts, and haptics
+
+---
+
+## Habit Loop
+
+1. Create a habit and assign it a plant.
+2. Complete the habit once per day by watering it.
+3. Earn water drops and Garden XP.
+4. Build streaks, progress plant stages, and trigger milestone rewards.
+5. Spend water drops in the Seed Store to unlock more plants.
+6. Sync a privacy-safe garden summary to Firebase for social features.
+
+Reward rules are centralized in `RewardCalculator`: normal completion gives 10 drops and 10 XP, stage-ups give extra rewards, fully grown plants grant a larger bonus, and perfect days grant an additional daily reward.
+
+---
+
+## Gamification
+
+Plants grow through these stages: Seed, Sprout, Young Plant, Healthy Plant, Blooming Plant, and Fully Grown. The app ships stage-aware WebP assets for sunflower, cactus, lotus, water lily, bonsai, lavender, mushroom garden, venus flytrap, and sakura tree.
+
+Garden XP powers account-level progression from New Gardener through Habit Sage. Plant health uses completion history to show Fresh, Healthy, Dry, Wilting, or Dormant states without deleting or killing plants.
+
+---
+
+## Data And Privacy
+
+HabitSeed is local-first for personal data. Room stores users, settings, habits, logs, plant types, purchases, unlocked plants, social caches, and local mock friend data.
+
+Firebase is used for:
+
+* Google sign-in
+* Public garden summaries
+* Leaderboards
+* Following snapshots
+* Social nudges
+
+Firebase public profiles do not include private habit titles, descriptions, notes, emails, water-drop balances, exact Garden XP, or individual habit logs.
 
 ---
 
 ## Tech Stack
 
 * **Language:** Kotlin
-* **UI:** Jetpack Compose
-* **Design:** Material 3
-* **Architecture:** MVVM-style separation
-* **Database:** Room
-* **Dependency Injection:** Hilt
-* **Navigation:** Navigation Compose
-* **Data:** Local-first demo data
-
----
-
-## App Concept
-
-HabitSeed transforms habit tracking into a calming plant-growth experience.
-
-Instead of only checking off tasks, users grow a digital garden by completing habits consistently. Each habit is connected to plant progress, streaks, and water-drop rewards. The goal is to make habit tracking feel visual, gentle, and motivating.
-
----
-
-## Main Screens
-
-* **Splash Screen** — HabitSeed branding
-* **Onboarding** — App introduction and value proposition
-* **Login / Sign Up** — Local demo authentication
-* **Home Dashboard** — Daily habits, garden progress, and habit list
-* **Add Habit Modal** — Create new habits quickly from a bottom sheet
-* **Habit Detail** — Swipe to water habits and view progress
-* **Statistics** — Completion trends, streaks, and growth summary
-* **Seed Store** — Unlock plants and rewards using water drops
-* **Social Gardens** — Mock friends, leaderboards, and nudge actions
-* **Profile Settings** — User profile, preferences, and logout flow
+* **UI:** Jetpack Compose, Material 3
+* **Architecture:** MVVM-style ViewModels, repositories, Hilt dependency injection
+* **Local data:** Room database, migrations, seed data, Kotlin Flows
+* **Background work:** WorkManager for daily and habit-specific reminders
+* **Cloud/social:** Firebase Auth, Firestore, Google Sign-In through Credential Manager
+* **Media:** Coil for remote profile images
+* **Testing:** JUnit unit tests for repositories, date/streak logic, gamification, social mapping, and plant assets
 
 ---
 
 ## Project Structure
 
 ```text
-app/
-  src/main/
-    java/com/habitseed/app/
-      data/
-      domain/
-      ui/
-      di/
-    res/
+app/src/main/java/com/habitseed/app/
+  data/
+    auth/          Firebase and Google sign-in adapters
+    local/         Room database, DAOs, entities, cache tables
+    repository/    Habit, user, shop, and local social repositories
+    social/        Firestore social sync and DTOs
+  domain/
+    gamification/  Growth, health, level, and reward calculators
+    repository/    Repository contracts and result models
+    social/        Public profile privacy and mapping rules
+    util/          Date, streak, and progress helpers
+  notifications/   Notification channels, notifier, scheduler, worker
+  ui/
+    components/    Shared Compose components and plant rendering
+    feedback/      Haptics and notification permission helpers
+    navigation/    App routes, bottom navigation, NavHost
+    screens/       Splash, onboarding, login, home, habit detail, stats, store, social, profile
+    theme/         HabitSeed Material theme tokens
+
 docs/
-  screenshots/
-  brand/
+  brand/           GitHub banner
+  screenshots/     README screenshots
 ```
 
 ---
 
-## How to Run
+## Setup
 
-1. Clone the repository.
-
-```bash
-git clone https://github.com/xari-ya/HabitSeed.git
-```
-
-2. Open the project in Android Studio.
-
-3. Let Gradle sync finish.
-
-4. Select the `app` run configuration.
-
-5. Run the app on an emulator or Android device.
-
-Recommended setup:
+Recommended environment:
 
 * Android Studio
 * JDK 17
-* Android SDK API 34 or newer
-* Emulator/device with API 26+
+* Android SDK API 34
+* Emulator or Android device running API 26+
+
+Firebase is configured through `app/google-services.json` in this checkout. If you use a different Firebase project, replace that file with your own Android app config and publish/update `firestore.rules` for the Firestore social collections.
 
 ---
 
-## Build Commands
+## Build And Test
 
 From the project root:
 
 ```bash
-./gradlew clean assembleDebug
+./gradlew assembleDebug
 ./gradlew testDebugUnitTest
 ```
 
 On Windows PowerShell:
 
 ```powershell
-.\gradlew clean assembleDebug
+.\gradlew assembleDebug
 .\gradlew testDebugUnitTest
 ```
 
@@ -154,13 +155,7 @@ On Windows PowerShell:
 
 ## Status
 
-HabitSeed is fully implemented as a local-first Android demo application. The app includes the complete main flow from splash and onboarding to habit tracking, watering, statistics, rewards, social gardens, and profile settings.
-
----
-
-## Author
-
-Developed by **xari-ya** as a mobile application development project.
+HabitSeed is an implemented Android app with local habit tracking, gamified plant progression, store unlocks, statistics, profile settings, notifications, haptics, and Firebase-backed social garden features.
 
 ---
 
