@@ -5,6 +5,7 @@ import com.google.firebase.firestore.Query
 import com.habitseed.app.data.social.dto.FollowingDto
 import com.habitseed.app.data.social.dto.NudgeDto
 import com.habitseed.app.data.social.dto.PublicProfileDto
+import com.habitseed.app.data.social.dto.toFirestoreCreateData
 import javax.inject.Inject
 import kotlinx.coroutines.tasks.await
 
@@ -67,7 +68,7 @@ class FirestoreSocialRemoteDataSource @Inject constructor(
 
     override suspend fun sendNudge(nudge: NudgeDto) {
         firestore.collection(NUDGES)
-            .add(nudge)
+            .add(nudge.toFirestoreCreateData())
             .await()
     }
 

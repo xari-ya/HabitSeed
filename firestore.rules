@@ -15,6 +15,45 @@ service cloud.firestore {
       return value == null || value is string;
     }
 
+    function validNudgeKeys() {
+      return request.resource.data.keys().hasOnly([
+        'fromUid',
+        'toUid',
+        'fromName',
+        'fromPhotoUrl',
+        'messageType',
+        'message',
+        'createdAt',
+        'readAt'
+      ])
+      && request.resource.data.keys().hasAll([
+        'fromUid',
+        'toUid',
+        'fromName',
+        'fromPhotoUrl',
+        'messageType',
+        'message',
+        'createdAt',
+        'readAt'
+      ]);
+    }
+
+    function validNudgeTypes() {
+      return request.resource.data.fromUid is string
+        && request.resource.data.toUid is string
+        && request.resource.data.fromName is string
+        && validNullableString(request.resource.data.fromPhotoUrl)
+        && (
+          request.resource.data.messageType == 'WATER_REMINDER' ||
+          request.resource.data.messageType == 'KEEP_GOING' ||
+          request.resource.data.messageType == 'STREAK_CHEER' ||
+          request.resource.data.messageType == 'GARDEN_NUDGE'
+        )
+        && request.resource.data.message is string
+        && request.resource.data.createdAt is int
+        && request.resource.data.readAt == null;
+    }
+
     function validPublicProfileKeys() {
       return request.resource.data.keys().hasOnly([
         'uid',
@@ -134,19 +173,8 @@ service cloud.firestore {
     match /nudges/{nudgeId} {
       allow create: if signedIn()
         && request.resource.data.fromUid == request.auth.uid
-        && request.resource.data.toUid is string
-        && request.resource.data.messageType is string
-        && request.resource.data.message is string
-        && request.resource.data.keys().hasOnly([
-          'fromUid',
-          'toUid',
-          'fromName',
-          'fromPhotoUrl',
-          'messageType',
-          'message',
-          'createdAt',
-          'readAt'
-        ]);
+        && validNudgeKeys()
+        && validNudgeTypes();
 
       allow read: if signedIn()
         && (
@@ -156,7 +184,8 @@ service cloud.firestore {
 
       allow update: if signedIn()
         && resource.data.toUid == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt'])
+        && request.resource.data.readAt is int;
 
       allow delete: if false;
     }

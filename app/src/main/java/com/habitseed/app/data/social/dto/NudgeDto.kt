@@ -12,6 +12,19 @@ data class NudgeDto(
     val readAt: Long? = null
 )
 
+internal fun NudgeDto.toFirestoreCreateData(): Map<String, Any?> {
+    return mapOf(
+        "fromUid" to fromUid,
+        "toUid" to toUid,
+        "fromName" to fromName,
+        "fromPhotoUrl" to fromPhotoUrl,
+        "messageType" to messageType,
+        "message" to message,
+        "createdAt" to createdAt,
+        "readAt" to readAt
+    )
+}
+
 object NudgeMessageTypes {
     const val WATER_REMINDER = "WATER_REMINDER"
     const val KEEP_GOING = "KEEP_GOING"
